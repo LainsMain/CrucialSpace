@@ -207,13 +207,4 @@ The `/process` endpoint:
 
 ## 📝 License
 
-[Add your license here]
-
-## 🤝 Contributing
-
-[Add contribution guidelines if applicable]
-
-## 📧 Support
-
-[Add support/contact information]
-
+[MIT license]
