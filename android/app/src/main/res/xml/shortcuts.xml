@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="open_space"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_space_short"
+        android:shortcutLongLabel="@string/shortcut_space_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="app://shortcut/feed"
+            android:targetClass="com.crucialspace.app.MainActivity" >
+            <category android:name="android.intent.category.DEFAULT"/>
+            <category android:name="android.intent.category.BROWSABLE"/>
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="open_collections"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_collections_short"
+        android:shortcutLongLabel="@string/shortcut_collections_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="app://shortcut/collections"
+            android:targetClass="com.crucialspace.app.MainActivity" >
+            <category android:name="android.intent.category.DEFAULT"/>
+            <category android:name="android.intent.category.BROWSABLE"/>
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="open_enrich"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_enrich_short"
+        android:shortcutLongLabel="@string/shortcut_enrich_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="app://shortcut/enrich"
+            android:targetClass="com.crucialspace.app.MainActivity" >
+            <category android:name="android.intent.category.DEFAULT"/>
+            <category android:name="android.intent.category.BROWSABLE"/>
+        </intent>
+    </shortcut>
+</shortcuts>

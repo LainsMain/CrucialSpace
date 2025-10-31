@@ -1,0 +1,90 @@
+# Environment files (keep .example files)
+backend/.env
+backend/env
+deploy/stack.env
+*.env
+!*.env.example
+
+# Android
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/.idea/
+android/.DS_Store
+android/captures/
+android/externalNativeBuild/
+android/.cxx/
+*.iml
+.gradle/
+local.properties
+*.apk
+*.ap_
+*.aab
+
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Logs
+*.log
+logs/
+
+# Credentials (additional safety)
+*credentials*.json
+*secrets*
+*.pem
+*.key
+*.cert
+

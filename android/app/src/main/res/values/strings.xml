@@ -1,0 +1,13 @@
+<resources>
+	<string name="app_name">Crucial Space</string>
+	<string name="save">Save</string>
+	<string name="note_hint">Add a quick note...</string>
+	<string name="record">Record</string>
+	<string name="stop">Stop</string>
+	<string name="shortcut_space_short">Space</string>
+	<string name="shortcut_space_long">Open Space</string>
+	<string name="shortcut_collections_short">Collections</string>
+	<string name="shortcut_collections_long">Open Collections</string>
+	<string name="shortcut_enrich_short">Enrich</string>
+	<string name="shortcut_enrich_long">Open Enrich</string>
+</resources>

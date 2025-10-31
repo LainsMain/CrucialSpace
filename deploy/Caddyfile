@@ -1,0 +1,11 @@
+# Replace your.domain with your actual domain and ensure DNS A/AAAA record points to this server
+your.domain.com {
+    encode gzip
+    tls you@example.com
+    @api {
+        path /*
+    }
+    reverse_proxy @api api:8000
+}
+
+
