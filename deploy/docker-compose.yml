@@ -1,12 +1,8 @@
-version: "3.9"
-
 networks:
   cs_net:
 
 volumes:
   cs_tmp:
-  caddy_data:
-  caddy_config:
 
 services:
   api:
@@ -26,22 +22,5 @@ services:
       - cs_net
     ports:
       - "8000:8000"
-
-  # Optional: Enable to get automatic HTTPS via Caddy (set your domain below)
-  caddy:
-    image: caddy:2
-    container_name: cs-caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - api
-    networks:
-      - cs_net
 
 
