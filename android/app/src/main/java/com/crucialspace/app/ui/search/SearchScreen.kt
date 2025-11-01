@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -98,39 +101,43 @@ fun SearchScreen(onOpenDetail: (String) -> Unit, onBack: () -> Unit = {}) {
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconButton(onClick = onBack) { androidx.compose.material3.Icon(Icons.Filled.ArrowBack, contentDescription = "Back") }
-            Text("Search", style = MaterialTheme.typography.headlineSmall)
-        }
-        Column(modifier = Modifier
-            .fillMaxWidth()
-            .border(2.dp, goldBrush, RoundedCornerShape(24.dp))
-            .padding(8.dp)) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                placeholder = { Text("Type to search…") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor = Color.White,
-                    focusedContainerColor = Color(0xFF1D1D20),
-                    unfocusedContainerColor = Color(0xFF1D1D20)
+    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                IconButton(onClick = onBack) { androidx.compose.material3.Icon(Icons.Filled.ArrowBack, contentDescription = "Back") }
+                Text("Search", style = MaterialTheme.typography.headlineSmall)
+            }
+            Spacer(Modifier.height(12.dp))
+            Column(modifier = Modifier
+                .fillMaxWidth()
+                .border(2.dp, goldBrush, RoundedCornerShape(24.dp))
+                .padding(8.dp)) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = { Text("Type to search…") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        cursorColor = Color.White,
+                        focusedContainerColor = Color(0xFF1D1D20),
+                        unfocusedContainerColor = Color(0xFF1D1D20)
+                    )
                 )
-            )
-        }
+            }
+            Spacer(Modifier.height(12.dp))
 
-        // Simple 2-column grid
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            results.chunked(2).forEach { rowItems ->
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    rowItems.forEach { m ->
-                        Box(modifier = Modifier.weight(1f)) { SearchResultCard(item = m, onClick = { onOpenDetail(m.id) }) }
-                    }
-                    if (rowItems.size == 1) Spacer(Modifier.weight(1f))
+            // Scrollable 2-column grid
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(results) { m ->
+                    SearchResultCard(item = m, onClick = { onOpenDetail(m.id) })
                 }
             }
         }
