@@ -54,6 +54,9 @@ interface MemoryDao {
     @Query("UPDATE memories SET aiTodosDoneJson = :done WHERE id = :id")
     suspend fun updateTodosDone(id: String, done: String?)
 
+	@Query("UPDATE memories SET generatedImageUri = :imageUri WHERE id = :id")
+	suspend fun updateGeneratedImage(id: String, imageUri: String?)
+
     @Query("DELETE FROM memories WHERE id IN(:ids)")
     suspend fun deleteByIds(ids: List<String>)
 

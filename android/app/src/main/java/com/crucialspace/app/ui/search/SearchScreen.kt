@@ -103,30 +103,30 @@ fun SearchScreen(onOpenDetail: (String) -> Unit, onBack: () -> Unit = {}) {
 
     Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                IconButton(onClick = onBack) { androidx.compose.material3.Icon(Icons.Filled.ArrowBack, contentDescription = "Back") }
-                Text("Search", style = MaterialTheme.typography.headlineSmall)
-            }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            IconButton(onClick = onBack) { androidx.compose.material3.Icon(Icons.Filled.ArrowBack, contentDescription = "Back") }
+            Text("Search", style = MaterialTheme.typography.headlineSmall)
+        }
             Spacer(Modifier.height(12.dp))
-            Column(modifier = Modifier
-                .fillMaxWidth()
-                .border(2.dp, goldBrush, RoundedCornerShape(24.dp))
-                .padding(8.dp)) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    placeholder = { Text("Type to search…") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        cursorColor = Color.White,
-                        focusedContainerColor = Color(0xFF1D1D20),
-                        unfocusedContainerColor = Color(0xFF1D1D20)
-                    )
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .border(2.dp, goldBrush, RoundedCornerShape(24.dp))
+            .padding(8.dp)) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = { Text("Type to search…") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    cursorColor = Color.White,
+                    focusedContainerColor = Color(0xFF1D1D20),
+                    unfocusedContainerColor = Color(0xFF1D1D20)
                 )
-            }
+            )
+        }
             Spacer(Modifier.height(12.dp))
 
             // Scrollable 2-column grid
@@ -152,8 +152,13 @@ private fun SearchResultCard(item: MemoryEntity, onClick: () -> Unit) {
             .fillMaxWidth()
             .height(150.dp)
             .padding(0.dp)) {
-            if (!item.imageUri.isNullOrBlank()) {
-                AsyncImage(model = item.imageUri, contentDescription = null, modifier = Modifier.matchParentSize().clip(RoundedCornerShape(16.dp)), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+            val displayImageUri = if (!item.generatedImageUri.isNullOrBlank()) {
+                item.generatedImageUri
+            } else {
+                item.imageUri
+            }
+            if (!displayImageUri.isNullOrBlank()) {
+                AsyncImage(model = displayImageUri, contentDescription = null, modifier = Modifier.matchParentSize().clip(RoundedCornerShape(16.dp)), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
             } else {
                 androidx.compose.foundation.Canvas(modifier = Modifier.matchParentSize()) {
                     val g = Brush.linearGradient(listOf(Color(0xFF2B2B33), Color(0xFF1F2933), Color(0xFF1B2A24), Color(0xFF3A2626)))
@@ -163,7 +168,7 @@ private fun SearchResultCard(item: MemoryEntity, onClick: () -> Unit) {
             Box(modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth().height(64.dp).background(Brush.verticalGradient(listOf(Color(0x00000000), Color(0x99000000), Color(0xE6000000)))))
             Column(modifier = Modifier.align(Alignment.BottomStart).padding(horizontal = 10.dp, vertical = 8.dp)) {
                 Text(text = item.aiTitle ?: item.noteText ?: "", color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (item.imageUri.isNullOrBlank() && !item.aiSummary.isNullOrBlank()) {
+                if (displayImageUri.isNullOrBlank() && !item.aiSummary.isNullOrBlank()) {
                     Spacer(Modifier.height(2.dp))
                     Text(text = item.aiSummary!!, color = Color.White.copy(alpha = 0.85f), maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
                 }

@@ -35,6 +35,10 @@ class UploadMemoryWorker(appContext: Context, params: WorkerParameters) : Corout
         val todosAdapter = moshi.adapter<List<String>>(todosType)
         val remindersAdapter = moshi.adapter<List<AiReminder>>(remindersType)
 
+		// Check if image generation is enabled in settings
+		val settings = com.crucialspace.app.settings.SettingsStore(applicationContext)
+		val generateImagesEnabled = settings.getGenerateImages()
+
 		var transientFailure = false
 		for (m in pending) {
             var imagePart: MultipartBody.Part? = null
@@ -52,7 +56,8 @@ class UploadMemoryWorker(appContext: Context, params: WorkerParameters) : Corout
                 val nowPart = nowIso.toRequestBody("text/plain".toMediaTypeOrNull())
                 val existing = db(applicationContext).memoryDao().listCollections().map { it.name.trim() }.filter { it.isNotEmpty() }.joinToString(separator = "\n")
                 val existingPart = if (existing.isNotBlank()) existing.toRequestBody("text/plain".toMediaTypeOrNull()) else null
-                val result = api.process(imagePart, notePart, audioPart, nowPart, existingPart)
+                val generateImagesPart = generateImagesEnabled.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+                val result = api.process(imagePart, notePart, audioPart, nowPart, existingPart, generateImagesPart)
                 val normalizedReminders = normalizeReminders(result.reminders)
                 val todosJson = todosAdapter.toJson(result.todos)
                 val urlsJson = todosAdapter.toJson(result.urls)
@@ -60,6 +65,10 @@ class UploadMemoryWorker(appContext: Context, params: WorkerParameters) : Corout
                 val safeTitle = result.title ?: result.summary
                 val embeddingJson = (result.embedding ?: emptyList<Double>()).joinToString(prefix = "[", postfix = "]") { it.toString() }
                 dao.markSuccess(m.id, safeTitle, result.summary, todosJson, urlsJson, remindersJson, embeddingJson, "SYNCED")
+                // If we have a generated image, save it
+                if (!result.generated_image.isNullOrBlank()) {
+                    dao.updateGeneratedImage(m.id, result.generated_image)
+                }
                 // If we have a transcript from the server, store it as the note text for display
                 if (!result.transcript.isNullOrBlank()) {
                     dao.updateNoteText(m.id, result.transcript)
@@ -92,7 +101,8 @@ class UploadMemoryWorker(appContext: Context, params: WorkerParameters) : Corout
                         val nowPart2 = nowIso2.toRequestBody("text/plain".toMediaTypeOrNull())
                         val existing2 = db(applicationContext).memoryDao().listCollections().map { it.name.trim() }.filter { it.isNotEmpty() }.joinToString(separator = "\n")
                         val existingPart2 = if (existing2.isNotBlank()) existing2.toRequestBody("text/plain".toMediaTypeOrNull()) else null
-                        val raw = api.processRaw(ip, notePart, audioPart, nowPart2, existingPart2)
+                        val generateImagesPart2 = generateImagesEnabled.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+                        val raw = api.processRaw(ip, notePart, audioPart, nowPart2, existingPart2, generateImagesPart2)
                         val body = raw.body()?.string()
                         android.util.Log.e("UploadMemoryWorker", "process failed; raw=${body}")
                     }

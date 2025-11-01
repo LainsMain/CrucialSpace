@@ -41,6 +41,7 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.core.content.pm.ShortcutInfoCompat
 import android.content.Intent
 import com.crucialspace.app.share.ShareTargetActivity
+import androidx.compose.material3.Switch
 
 @Composable
 fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
@@ -48,6 +49,7 @@ fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
 	val store = remember { SettingsStore(context) }
 	val base = remember { mutableStateOf(store.getBaseUrl()) }
 	val secret = remember { mutableStateOf(store.getSharedSecret().orEmpty()) }
+	val generateImages = remember { mutableStateOf(store.getGenerateImages()) }
     val activity = LocalContext.current as android.app.Activity
     val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -104,11 +106,25 @@ fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
             )
         }
 
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .border(2.dp, goldBrush, RoundedCornerShape(24.dp))
+            .padding(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Text("Generate images for memories", color = Color.White)
+                Switch(
+                    checked = generateImages.value,
+                    onCheckedChange = { generateImages.value = it }
+                )
+            }
+        }
+
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)) {
             OutlinedButton(
                 onClick = {
                     store.setBaseUrl(base.value)
                     store.setSharedSecret(secret.value)
+                    store.setGenerateImages(generateImages.value)
                     onSaved()
                 },
                 shape = RoundedCornerShape(12.dp),

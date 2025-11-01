@@ -50,6 +50,7 @@ class AiResult(BaseModel):
     embedding: Optional[List[float]] = None
     transcript: Optional[str] = None
     collections: List[str] = []
+    generated_image: Optional[str] = None
 
     @field_validator("todos")
     @classmethod
@@ -90,6 +91,7 @@ async def process(
     audio: Optional[UploadFile] = File(None),
     now_utc: Optional[str] = Form(None),
     existing_collections: Optional[str] = Form(None),
+    generate_images: Optional[str] = Form(None),
     x_cs_secret: Optional[str] = Header(None),
 ):
     _ensure_secret(x_cs_secret)
@@ -144,6 +146,19 @@ async def process(
             emb = []
         result["embedding"] = emb
         result["transcript"] = transcript
+        
+        # Generate image if enabled and no user-provided image
+        should_generate = (generate_images or "").strip().lower() == "true"
+        if should_generate and not img_path and (note or stt_text):
+            try:
+                from app.gemini import generate_image
+                logger.info("Generating image for memory")
+                image_base64 = generate_image(result.get("title") or "", result.get("summary") or "")
+                if image_base64:
+                    result["generated_image"] = image_base64
+            except Exception as exc:
+                logger.exception("Image generation failed: %s", exc)
+        
         return result
     finally:
         # Best-effort cleanup

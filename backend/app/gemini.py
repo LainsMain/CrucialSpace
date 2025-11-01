@@ -162,3 +162,66 @@ def embed_text(text: str) -> List[float]:
         return []
 
 
+def generate_image(title: str, summary: str) -> Optional[str]:
+    """Generate an image using Gemini 2.5 Flash Image (Nano Banana) and return as base64 string.
+    
+    Returns None on failure or if image generation is not available.
+    """
+    try:
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            logger.warning("GOOGLE_API_KEY not set; skipping image generation")
+            return None
+        
+        genai.configure(api_key=api_key)
+        
+        # Create a descriptive prompt from title and summary for image generation
+        prompt = _build_image_prompt(title, summary)
+        
+        logger.info("Generating image with prompt: %s", prompt[:100])
+        
+        # Use gemini-2.5-flash-image model for image generation (Nano Banana)
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        
+        response = model.generate_content(
+            [prompt],
+            generation_config=genai.types.GenerationConfig(
+                max_output_tokens=1024,
+            ),
+        )
+        
+        # Try to extract image from response if it has one
+        if response and hasattr(response, "content"):
+            for part in response.content.parts:
+                if hasattr(part, "inline_data") and part.inline_data:
+                    import base64
+                    img_data = part.inline_data.data
+                    if isinstance(img_data, bytes):
+                        return base64.b64encode(img_data).decode("utf-8")
+        
+        logger.warning("No image data in response")
+        return None
+        
+    except Exception as exc:
+        logger.exception("Image generation failed: %s", exc)
+        return None
+
+
+def _build_image_prompt(title: str, summary: str) -> str:
+    """Build a visual prompt for image generation based on memory title and summary."""
+    base = (
+        "Create a simple, clean visual representation for a memory note. "
+        "Style: minimalist, modern, professional. "
+        "Avoid text and watermarks. "
+    )
+    
+    if title and summary:
+        return f"{base}\nMemory: {title}. Context: {summary[:200]}"
+    elif title:
+        return f"{base}\nMemory concept: {title}"
+    elif summary:
+        return f"{base}\nContext: {summary[:200]}"
+    else:
+        return base + "\nGeneric memory representation with abstract shapes and calming colors."
+
+

@@ -30,8 +30,15 @@ class SettingsStore(private val context: Context) {
 		prefs.edit().putString(KEY_SECRET, secret).apply()
 	}
 
+	fun getGenerateImages(): Boolean = prefs.getBoolean(KEY_GENERATE_IMAGES, false)
+
+	fun setGenerateImages(enabled: Boolean) {
+		prefs.edit().putBoolean(KEY_GENERATE_IMAGES, enabled).apply()
+	}
+
 	companion object {
 		private const val KEY_BASE_URL = "base_url"
 		private const val KEY_SECRET = "secret"
+		private const val KEY_GENERATE_IMAGES = "generate_images"
 	}
 }

@@ -172,9 +172,14 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
             }
         }
         Spacer(Modifier.height(4.dp))
-        if (!item.imageUri.isNullOrBlank()) {
+        val displayImageUri = if (!item.generatedImageUri.isNullOrBlank()) {
+            item.generatedImageUri
+        } else {
+            item.imageUri
+        }
+        if (!displayImageUri.isNullOrBlank()) {
             AsyncImage(
-                model = item.imageUri,
+                model = displayImageUri,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -226,7 +231,7 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
         }
         // Fullscreen image viewer with zoom/pan and scrim, dismiss on back or outside tap
         BackHandler(showImage) { if (showImage) showImage = false }
-        if (showImage && !item.imageUri.isNullOrBlank()) {
+        if (showImage && !displayImageUri.isNullOrBlank()) {
             Dialog(onDismissRequest = { showImage = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
                 // Gesture state
                 var scale by remember { mutableStateOf(1f) }
@@ -248,7 +253,7 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
                     }
                 ) {
                     AsyncImage(
-                        model = item.imageUri,
+                        model = displayImageUri,
                         contentDescription = null,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier

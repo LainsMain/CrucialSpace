@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [MemoryEntity::class, CollectionEntity::class, MemoryCollectionCrossRef::class],
-    version = 6,
+    version = 7,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -27,7 +27,7 @@ fun db(context: Context): AppDatabase {
             DB_NAME
         )
             .enableMultiInstanceInvalidation()
-            .addMigrations(MIGRATION_5_6)
+            .addMigrations(MIGRATION_5_6, MIGRATION_6_7)
             .build()
             .also { INSTANCE = it }
     }
@@ -46,5 +46,13 @@ val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
         database.execSQL("DROP INDEX IF EXISTS idx_mccr_memory")
         database.execSQL("CREATE INDEX IF NOT EXISTS index_memory_collection_cross_ref_collectionId ON memory_collection_cross_ref(collectionId)")
         database.execSQL("CREATE INDEX IF NOT EXISTS index_memory_collection_cross_ref_memoryId ON memory_collection_cross_ref(memoryId)")
+    }
+}
+
+val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
+    override fun migrate(database: androidx.sqlite.db.SupportSQLiteDatabase) {
+        database.execSQL(
+            "ALTER TABLE memories ADD COLUMN generatedImageUri TEXT DEFAULT NULL"
+        )
     }
 }

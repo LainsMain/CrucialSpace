@@ -18,6 +18,7 @@ data class AiResult(
     val embedding: List<Double>? = null,
     val transcript: String? = null,
     val collections: List<String> = emptyList(),
+    val generated_image: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
