@@ -41,6 +41,7 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.core.content.pm.ShortcutInfoCompat
 import android.content.Intent
 import com.crucialspace.app.share.ShareTargetActivity
+import androidx.compose.runtime.LaunchedEffect
 
 @Composable
 fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
@@ -48,6 +49,8 @@ fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
 	val store = remember { SettingsStore(context) }
 	val base = remember { mutableStateOf(store.getBaseUrl()) }
 	val secret = remember { mutableStateOf(store.getSharedSecret().orEmpty()) }
+	val localAi = remember { mutableStateOf(store.isLocalAiEnabled()) }
+	val geminiKey = remember { mutableStateOf(store.getGeminiApiKey().orEmpty()) }
     val activity = LocalContext.current as android.app.Activity
     val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -63,6 +66,8 @@ fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
             start = androidx.compose.ui.geometry.Offset(shift.value, 0f),
             end = androidx.compose.ui.geometry.Offset(shift.value + 300f, 200f)
         )
+
+        // No model selector; always uses gemini-2.5-flash
 
         Column(modifier = Modifier
             .fillMaxWidth()
@@ -82,12 +87,7 @@ fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
                     unfocusedContainerColor = Color(0xFF1D1D20)
                 )
             )
-        }
-
-        Column(modifier = Modifier
-            .fillMaxWidth()
-            .border(2.dp, goldBrush, RoundedCornerShape(24.dp))
-            .padding(8.dp)) {
+            Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = secret.value,
                 onValueChange = { secret.value = it },
@@ -102,13 +102,56 @@ fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
                     unfocusedContainerColor = Color(0xFF1D1D20)
                 )
             )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Base URL and Shared Secret are only needed when using a backend. If you use Gemini directly, you can leave these blank.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFFB0B0B0)
+            )
         }
+
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .border(2.dp, goldBrush, RoundedCornerShape(24.dp))
+            .padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Text("Use Gemini directly (no backend)")
+                androidx.compose.material3.Switch(checked = localAi.value, onCheckedChange = { localAi.value = it })
+            }
+        }
+
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .border(2.dp, goldBrush, RoundedCornerShape(24.dp))
+            .padding(8.dp)) {
+            OutlinedTextField(
+                value = geminiKey.value,
+                onValueChange = { geminiKey.value = it },
+                label = { Text("Gemini API Key") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    cursorColor = Color.White,
+                    focusedContainerColor = Color(0xFF1D1D20),
+                    unfocusedContainerColor = Color(0xFF1D1D20)
+                )
+            )
+            Spacer(Modifier.height(4.dp))
+            Text("Model: gemini-2.5-flash", style = MaterialTheme.typography.bodySmall, color = Color(0xFFB0B0B0))
+        }
+
+        
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)) {
             OutlinedButton(
                 onClick = {
                     store.setBaseUrl(base.value)
                     store.setSharedSecret(secret.value)
+                    store.setLocalAiEnabled(localAi.value)
+                    store.setGeminiApiKey(geminiKey.value)
                     onSaved()
                 },
                 shape = RoundedCornerShape(12.dp),

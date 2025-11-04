@@ -13,7 +13,7 @@ Crucial Space is a utility app that transforms how you capture and remember info
 - **AI-Powered Analysis**: Automatically transcribes audio, summarizes content, extracts action items, and identifies reminders
 - **Smart Collections**: Automatically organizes memories into relevant collections
 - **Offline-First**: All memories stored locally using Room Database for fast, offline access
-- **Privacy-Focused**: Your data stays on your device; AI processing happens on your own backend
+- **Privacy-Focused**: Your data stays on your device; AI can run via your backend or directly with your Gemini API key (no custom backend required)
 
 ## 🏗️ Architecture
 
@@ -25,7 +25,7 @@ Crucial Space is a utility app that transforms how you capture and remember info
 - **Minimum SDK**: Android 8.0 (API 26)
 - **Target SDK**: Android 14 (API 34)
 
-### Backend API
+### Backend API (optional)
 - **Framework**: FastAPI (Python)
 - **AI Services**: 
   - Google Gemini API (multimodal analysis)
@@ -46,7 +46,7 @@ Crucial Space is a utility app that transforms how you capture and remember info
   - Google API Key (for Gemini)
   - Optional: Google Cloud Speech-to-Text credentials or OpenAI API key
 
-### Backend Setup
+### Backend Setup (optional if you use Gemini directly)
 
 1. **Clone the repository**
    ```bash
@@ -96,21 +96,41 @@ The API will be available at `http://localhost:8000`
    ```
    Open the `android` folder in Android Studio.
 
-2. **Configure API endpoint**
-   
-   You'll need to configure the backend URL in the app. This is typically done in:
-   - Build configuration files
-   - Or runtime configuration
+2. **Choose how AI runs**
 
-3. **Configure shared secret**
-   
-   Set the same `CS_SHARED_SECRET` value that you used in the backend to authenticate API requests.
+   Open the app → Settings and choose one of two modes:
 
-4. **Build and run**
+   - Use Gemini directly (no backend):
+     - Toggle "Use Gemini directly (no backend)" on.
+     - Paste your Gemini API key.
+     - The app will call Gemini APIs from the device for analysis, reminders/todos extraction, and embeddings. Default model: `gemini-2.5-flash`.
+
+   - Use your backend:
+     - Toggle off the direct-Gemini option.
+     - Set Base URL (e.g., `http://10.0.2.2:8000/` for local emulator) and your Shared Secret.
+
+3. **Notes on settings**
+
+   - Base URL and Shared Secret are only needed when using a backend.
+   - When using Gemini directly, only the Gemini API key is needed.
+   - The Gemini model is fixed to `gemini-2.5-flash` for generation; embeddings use `text-embedding-004`.
+
+4. **Build and run (debug)**
    ```bash
    ./gradlew assembleDebug
    ```
    Or use Android Studio's build and run functionality.
+
+### Create a signed APK for GitHub Releases
+
+1. In Android Studio: Build → Generate Signed Bundle / APK… → APK → Next
+2. Create or choose a release keystore (keep it private; do not commit to git)
+3. Select release variant; enable V2+V3 signature
+4. Build output: `android/app/build/outputs/apk/release/app-release.apk`
+5. Upload the APK to a GitHub Release and include:
+   - minSdk/targetSdk (minSdk 26, target 34)
+   - SHA-256 checksum (Windows: `CertUtil -hashfile android\app\build\outputs\apk\release\app-release.apk SHA256`)
+   - Optional: signing cert info (`apksigner verify --print-certs ...`)
 
 ## 🔧 Configuration
 
@@ -174,8 +194,10 @@ The stack includes:
 2. **Add Context**: Quick enrichment screen appears with options to:
    - Add a text note
    - Record a voice note
-3. **Save**: Content is saved locally and API processing begins
-4. **AI Processing**: Backend processes the content:
+3. **Save**: Content is saved locally
+4. **AI Processing**:
+   - If using backend: FastAPI processes content (transcribe, analyze, embed)
+   - If using Gemini directly: the Android app calls Gemini APIs from the device
    - Transcribes audio (if provided)
    - Analyzes image + text using Gemini
    - Extracts: summary, todos, reminders, URLs, collections
@@ -200,10 +222,10 @@ The `/process` endpoint:
 
 ## 🔒 Security
 
-- **API Authentication**: Uses shared secret header (`X-CS-Secret`)
-- **Local Storage**: All memories stored locally on device
-- **No API Keys in App**: All API keys remain on backend server
-- **Optional HTTPS**: Configure Caddy for encrypted connections
+- **Local Storage**: All memories stored locally on device (Room)
+- **Backend mode**: API requests authenticated with `X-CS-Secret`
+- **Gemini-direct mode**: Users provide their own Gemini API key, stored securely via Android EncryptedSharedPreferences; requests go directly from device to Google APIs
+- **HTTPS**: Recommended for backend deployments (Caddy provided)
 
 ## 📝 License
 

@@ -28,6 +28,7 @@ fun db(context: Context): AppDatabase {
         )
             .enableMultiInstanceInvalidation()
             .addMigrations(MIGRATION_5_6)
+            .fallbackToDestructiveMigrationOnDowngrade()
             .build()
             .also { INSTANCE = it }
     }

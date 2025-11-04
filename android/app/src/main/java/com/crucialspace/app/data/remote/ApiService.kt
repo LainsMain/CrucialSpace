@@ -47,7 +47,8 @@ interface ApiService {
 	companion object {
 		fun create(context: Context): ApiService {
 			val settings = SettingsStore(context)
-			val baseUrl = settings.getBaseUrl()
+			var baseUrl = settings.getBaseUrl()
+			if (!baseUrl.endsWith("/")) baseUrl += "/"
 
 			val secret = settings.getSharedSecret()
 			val headerInterceptor = Interceptor { chain ->
