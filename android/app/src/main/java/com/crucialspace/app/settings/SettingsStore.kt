@@ -17,7 +17,8 @@ class SettingsStore(private val context: Context) {
 	}
 
 	fun getBaseUrl(): String {
-		return prefs.getString(KEY_BASE_URL, "http://10.0.2.2:8000/")!!
+		val v = prefs.getString(KEY_BASE_URL, null)
+		return if (v.isNullOrBlank()) "http://10.0.2.2:8000/" else v
 	}
 
 	fun setBaseUrl(url: String) {
@@ -30,8 +31,44 @@ class SettingsStore(private val context: Context) {
 		prefs.edit().putString(KEY_SECRET, secret).apply()
 	}
 
+	fun isLocalAiEnabled(): Boolean {
+		return prefs.getBoolean(KEY_LOCAL_AI, false)
+	}
+
+	fun setLocalAiEnabled(enabled: Boolean) {
+		prefs.edit().putBoolean(KEY_LOCAL_AI, enabled).apply()
+	}
+
+	fun getGeminiApiKey(): String? {
+		return prefs.getString(KEY_GEMINI_API_KEY, null)
+	}
+
+	fun setGeminiApiKey(key: String) {
+		prefs.edit().putString(KEY_GEMINI_API_KEY, key).apply()
+	}
+
+	fun getGeminiModel(): String {
+		return prefs.getString(KEY_GEMINI_MODEL, "gemini-2.5-flash")!!
+	}
+
+	fun setGeminiModel(model: String) {
+		prefs.edit().putString(KEY_GEMINI_MODEL, model).apply()
+	}
+
+	fun getEmbeddingModel(): String {
+		return prefs.getString(KEY_EMBEDDING_MODEL, "text-embedding-004")!!
+	}
+
+	fun setEmbeddingModel(model: String) {
+		prefs.edit().putString(KEY_EMBEDDING_MODEL, model).apply()
+	}
+
 	companion object {
 		private const val KEY_BASE_URL = "base_url"
 		private const val KEY_SECRET = "secret"
+		private const val KEY_LOCAL_AI = "local_ai"
+		private const val KEY_GEMINI_API_KEY = "gemini_api_key"
+		private const val KEY_GEMINI_MODEL = "gemini_model"
+		private const val KEY_EMBEDDING_MODEL = "embedding_model"
 	}
 }
