@@ -40,7 +40,12 @@ def _build_prompt(note: str, stt_text: str, now_utc: Optional[str], existing_col
     if existing_collections.strip():
         parts.append("Existing collections (use if relevant; create new only if needed):\n" + existing_collections.strip())
     context = "\n".join(parts) if parts else "(no additional text context provided)"
-    now_val = now_utc or datetime.datetime.now(datetime.timezone.utc).isoformat()
+    now_utc_val = now_utc or datetime.datetime.now(datetime.timezone.utc).isoformat()
+    # Get local timezone info (server timezone - note: this assumes server is in user's timezone or close)
+    # For better accuracy, the Android app should send timezone info, but for now we'll use server timezone
+    now_local = datetime.datetime.now(datetime.timezone.utc).astimezone()
+    timezone_offset = now_local.strftime("%z")
+    now_local_iso = now_local.isoformat()
     return (
         "You are a Memory Assistant inside a personal knowledge app. Return ONLY valid JSON.\n"
         "Your goal is to turn the inputs (image + note + transcript) into a concise memory summary, not a photo caption.\n"
@@ -56,14 +61,13 @@ def _build_prompt(note: str, stt_text: str, now_utc: Optional[str], existing_col
         "- Include blank lines between headings and paragraphs for readability. Do NOT use code fences.\n"
         "Title: a very short, scannable headline (≤ 7 words), noun-led (e.g., 'Burger Sauce Recipe').\n"
         "Extract concrete, actionable todos; write them as imperative phrases.\n"
-        "If any date/time is implied, set reminders with ISO 8601 UTC in 'datetime'. If not, leave empty.\n"
+        f"If any date/time is implied, set reminders with ISO 8601 UTC in 'datetime'. IMPORTANT: When the user mentions a time (e.g., '7pm', '3:30pm'), interpret it as LOCAL TIME in the user's timezone ({timezone_offset}), then convert to UTC. Current local datetime: {now_local_iso}. Current UTC datetime: {now_utc_val}.\n"
         "If the context contains any URLs, include them in 'urls' as absolute URLs.\n"
         "Also propose up to 3 concise 'collections' (topics like 'Fashion', 'Minecraft', 'Textile').\n"
         "Collections policy: Prefer selecting 1–3 from the provided Existing collections when they fit well.\n"
         "Only propose a new collection if none of the existing collections are suitable, and propose at most ONE new collection.\n"
         "New collection naming: Title Case, 1–3 words, specific (avoid generic terms), no emojis/punctuation, no duplicates.\n"
         "Do not return more than 3 total collections, and no more than 1 new; return [] if nothing fits.\n"
-        f"Current datetime (UTC): {now_val}. Use this as the 'now' reference when interpreting phrases like 'tomorrow'.\n"
         "If nothing is found for a field, return an empty list or an empty string accordingly.\n\n"
         f"Context:\n{context}\n\n"
         "Respond with JSON only — no code fences, no extra text."
