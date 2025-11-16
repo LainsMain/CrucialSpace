@@ -50,6 +50,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import kotlinx.coroutines.flow.MutableStateFlow
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalContext
+import com.crucialspace.app.update.UpdateChecker
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import kotlinx.coroutines.Dispatchers
 
 class MainActivity : ComponentActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,6 +74,58 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNav() {
 	val navController = rememberNavController()
+	val context = LocalContext.current
+	val updateAvailable = remember { mutableStateOf<com.crucialspace.app.update.GithubRelease?>(null) }
+	val showUpdateDialog = remember { mutableStateOf(false) }
+	
+	// Check for updates on startup
+	LaunchedEffect(Unit) {
+		kotlinx.coroutines.withContext(Dispatchers.IO) {
+			try {
+				val currentVersion = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+				val release = UpdateChecker.checkForUpdate(currentVersion)
+				if (release != null) {
+					updateAvailable.value = release
+					showUpdateDialog.value = true
+				}
+			} catch (e: Exception) {
+				android.util.Log.e("MainActivity", "Failed to check for updates on startup", e)
+			}
+		}
+	}
+	
+	// Update dialog
+	if (showUpdateDialog.value && updateAvailable.value != null) {
+		val release = updateAvailable.value!!
+		AlertDialog(
+			onDismissRequest = { showUpdateDialog.value = false },
+			title = { androidx.compose.material3.Text("Update Available") },
+			text = {
+				androidx.compose.foundation.layout.Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+					androidx.compose.material3.Text("Version ${release.version} is available!")
+					androidx.compose.material3.Text(
+						text = release.body,
+						style = MaterialTheme.typography.bodySmall,
+						color = Color.Gray
+					)
+				}
+			},
+			confirmButton = {
+				Button(onClick = {
+					UpdateChecker.downloadAndInstallApk(context, release.downloadUrl, release.version)
+					showUpdateDialog.value = false
+				}) {
+					androidx.compose.material3.Text("Download")
+				}
+			},
+			dismissButton = {
+				Button(onClick = { showUpdateDialog.value = false }) {
+					androidx.compose.material3.Text("Later")
+				}
+			}
+		)
+	}
+	
     NavHost(navController, startDestination = "feed") {
         composable(
             route = "feed",
