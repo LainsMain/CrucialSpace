@@ -1,10 +1,12 @@
 # Release Notes
 
-## v1.0.3 (2024-11-16)
+## v1.0.4 (2024-11-16)
 
 ### New Features
 
 - **Automatic Update Check on Startup**: The app now checks for updates automatically when launched and shows a notification if a new version is available.
+
+## v1.0.3 (2024-11-16)
 
 ### Bug Fixes
 
