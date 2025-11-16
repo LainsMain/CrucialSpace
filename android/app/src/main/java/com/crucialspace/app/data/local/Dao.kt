@@ -27,8 +27,8 @@ interface MemoryDao {
 	@Update
 	suspend fun update(item: MemoryEntity)
 
-    @Query("UPDATE memories SET aiTitle = :title, aiSummary = :summary, aiTodosJson = :todos, aiUrlsJson = :urls, aiRemindersJson = :reminders, embeddingJson = :embedding, status = :status, error = NULL WHERE id = :id")
-    suspend fun markSuccess(id: String, title: String?, summary: String?, todos: String?, urls: String?, reminders: String?, embedding: String?, status: String)
+    @Query("UPDATE memories SET aiTitle = :title, aiSummary = :summary, aiTodosJson = :todos, aiUrlsJson = :urls, aiRemindersJson = :reminders, embeddingJson = :embedding, audioTranscript = :transcript, status = :status, error = NULL WHERE id = :id")
+    suspend fun markSuccess(id: String, title: String?, summary: String?, todos: String?, urls: String?, reminders: String?, embedding: String?, transcript: String?, status: String)
 
     @Query("UPDATE memories SET noteText = :text WHERE id = :id")
     suspend fun updateNoteText(id: String, text: String?)

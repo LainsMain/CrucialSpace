@@ -31,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Save
 import android.media.MediaRecorder
 import android.media.AudioRecord
 import android.media.AudioFormat
@@ -41,8 +42,12 @@ import androidx.core.content.ContextCompat
 import androidx.core.app.ActivityCompat
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 // removed invalid import
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -109,6 +114,7 @@ class ShareTargetActivity : ComponentActivity() {
                     var audioRecord: AudioRecord? = null
                     var recordingJob: kotlinx.coroutines.Job? = null
                     var recordedFile by remember { mutableStateOf<File?>(null) }
+                    var recordedDurationMs by remember { mutableIntStateOf(0) }
                     val samples = remember { mutableStateListOf<Float>() }
                     var elapsedMs by remember { mutableIntStateOf(0) }
                     val uiScope = rememberCoroutineScope()
@@ -189,11 +195,20 @@ class ShareTargetActivity : ComponentActivity() {
 
                     fun stopRecording() {
                         isRecording = false
+                        recordedDurationMs = elapsedMs
                         try { audioRecord?.stop() } catch (_: Exception) {}
                         try { audioRecord?.release() } catch (_: Exception) {}
                         audioRecord = null
                         // Do not cancel the IO job so it can finalize WAV header safely
                         recordingJob = null
+                    }
+                    
+                    fun removeAudio() {
+                        recordedFile?.let { runCatching { it.delete() } }
+                        recordedFile = null
+                        recordedDurationMs = 0
+                        samples.clear()
+                        elapsedMs = 0
                     }
 
                     fun trashRecording() {
@@ -211,6 +226,22 @@ class ShareTargetActivity : ComponentActivity() {
                     var previewImage by remember { mutableStateOf<Uri?>(null) }
                     var capturedImage by remember { mutableStateOf<Uri?>(null) }
                     var pendingCaptureUri by remember { mutableStateOf<Uri?>(null) }
+                    
+                    // Extract and store URL separately from note text (must be declared early)
+                    var separateUrl by remember { mutableStateOf<String?>(null) }
+                    var editingUrl by remember { mutableStateOf(false) }
+                    var urlEditText by remember { mutableStateOf("") }
+                    
+                    // Extract URL from note on first load/change and separate it
+                    LaunchedEffect(note) {
+                        if (separateUrl == null) {
+                            val foundUrl = Regex("https?://\\S+").find(note)?.value
+                            if (foundUrl != null) {
+                                separateUrl = foundUrl
+                                note = note.replace(foundUrl, "").trim()
+                            }
+                        }
+                    }
 
                     fun createImageUri(): Uri? {
                         return try {
@@ -231,20 +262,27 @@ class ShareTargetActivity : ComponentActivity() {
 
                     // Try to fetch preview image when URL changes and no local/shared image is present
                     var lastFetchedUrl by remember { mutableStateOf("") }
-                    val currentUrl = remember(note) { Regex("https?://\\S+").find(note)?.value.orEmpty() }
-                    LaunchedEffect(currentUrl, sharedImage, capturedImage) {
+                    LaunchedEffect(separateUrl, sharedImage, capturedImage) {
+                        val currentUrl = separateUrl ?: ""
                         if (sharedImage == null && capturedImage == null) {
                             if (currentUrl.isBlank()) {
                                 previewImage = null
                                 lastFetchedUrl = ""
                             } else if (currentUrl != lastFetchedUrl && (previewImage == null || lastFetchedUrl.isBlank())) {
                                 try {
-                                    val fileUri = withContext(Dispatchers.IO) { fetchOgImageToCache(this@ShareTargetActivity, currentUrl) }
+                                    val fileUri = withContext(Dispatchers.IO) { 
+                                        fetchOgImageToFiles(this@ShareTargetActivity, currentUrl) 
+                                    }
                                     if (fileUri != null) {
                                         previewImage = fileUri
                                         lastFetchedUrl = currentUrl
+                                        android.util.Log.d("ShareTargetActivity", "Successfully fetched preview: $fileUri")
+                                    } else {
+                                        android.util.Log.w("ShareTargetActivity", "No preview image found for: $currentUrl")
                                     }
-                                } catch (_: Exception) { /* keep previous preview if any */ }
+                                } catch (e: Exception) { 
+                                    android.util.Log.e("ShareTargetActivity", "Failed to fetch preview for: $currentUrl", e)
+                                }
                             }
                         }
                     }
@@ -319,6 +357,102 @@ class ShareTargetActivity : ComponentActivity() {
                         Spacer(Modifier.weight(1f))
                     }
 
+                    // URL bubble display
+                    if (separateUrl != null && !editingUrl) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF2A2A2F),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = separateUrl!!,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFF6B9BD1),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f).clickable {
+                                        urlEditText = separateUrl!!
+                                        editingUrl = true
+                                    }
+                                )
+                                IconButton(onClick = {
+                                    separateUrl = null
+                                }, modifier = Modifier.size(24.dp)) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Delete,
+                                        contentDescription = "Remove URL",
+                                        tint = Color(0xFFFF6B6B),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (editingUrl) {
+                        AlertDialog(
+                            onDismissRequest = { editingUrl = false },
+                            confirmButton = {
+                                Button(onClick = {
+                                    separateUrl = urlEditText
+                                    editingUrl = false
+                                }) { Text("Save") }
+                            },
+                            dismissButton = {
+                                Button(onClick = { editingUrl = false }) { Text("Cancel") }
+                            },
+                            title = { Text("Edit URL") },
+                            text = {
+                                OutlinedTextField(
+                                    value = urlEditText,
+                                    onValueChange = { urlEditText = it },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+                            }
+                        )
+                    }
+
+                    // Show audio badge if recording exists (above text field, below URL bubble)
+                    if (recordedFile != null && recordedDurationMs > 0 && !isRecording) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
+                                .background(Color(0xFF2A2A2F), RoundedCornerShape(12.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Mic,
+                                contentDescription = "Audio",
+                                tint = Color(0xFFFFD54F),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            val secs = recordedDurationMs / 1000
+                            Text(
+                                String.format("%d:%02d", secs / 60, secs % 60),
+                                color = Color.White,
+                                fontSize = 12.sp
+                            )
+                            Spacer(Modifier.weight(1f))
+                            IconButton(onClick = { removeAudio() }, modifier = Modifier.size(20.dp)) {
+                                Icon(
+                                    imageVector = Icons.Filled.Delete,
+                                    contentDescription = "Remove audio",
+                                    tint = Color(0xFFFF6B6B),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    }
+
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier
                             .fillMaxWidth()
                             .border(2.dp, goldBrush, RoundedCornerShape(28.dp))
@@ -326,7 +460,15 @@ class ShareTargetActivity : ComponentActivity() {
                             .background(Color(0xFF1D1D20))
                             .padding(horizontal = 8.dp, vertical = 6.dp)
                         ) {
-                            IconButton(onClick = { if (isRecording) trashRecording() else startRecording() }) {
+                            IconButton(onClick = { 
+                                if (isRecording) {
+                                    trashRecording()
+                                } else {
+                                    // Replace existing recording if any
+                                    removeAudio()
+                                    startRecording()
+                                }
+                            }) {
                                 androidx.compose.material3.Surface(shape = RoundedCornerShape(50), color = Color(0xFF2A2A2F)) {
                                     Icon(imageVector = if (isRecording) Icons.Filled.Delete else Icons.Filled.Mic, contentDescription = if (isRecording) "Discard recording" else "Record", tint = Color.White, modifier = Modifier.size(36.dp).padding(8.dp))
                                 }
@@ -350,6 +492,7 @@ class ShareTargetActivity : ComponentActivity() {
                                     Text(String.format("%d:%02d", secs / 60, secs % 60), color = Color.White, fontSize = 14.sp, modifier = Modifier.padding(start = 8.dp))
                                 }
                             } else {
+                                // Text input (completely separate from URL)
                                 Box(modifier = Modifier.weight(1f)) {
                                     if (note.isBlank()) {
                                         Text("Add a quick note…", color = Color.LightGray)
@@ -364,35 +507,59 @@ class ShareTargetActivity : ComponentActivity() {
                                         cursorBrush = SolidColor(Color.White),
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .heightIn(min = 20.dp, max = 160.dp)
+                                            .heightIn(min = 20.dp, max = 120.dp)
                                     )
                                 }
                             }
                             IconButton(onClick = {
-                                if (isRecording) stopRecording()
-                                // Save to DB and enqueue worker
-                                CoroutineScope(Dispatchers.IO).launch {
-                                    // If no image, try to grab preview from first URL
-                                    var localImageUri: Uri? = sharedImage?.let { copyToInternal(it) } ?: capturedImage
-                                    if (localImageUri == null) {
-                                        val url = Regex("https?://\\S+").find(note)?.value
-                                        if (!url.isNullOrBlank()) {
-                                            localImageUri = fetchOgImageToFiles(this@ShareTargetActivity, url)
+                                if (isRecording) {
+                                    // Save recording button: stop recording but don't send
+                                    stopRecording()
+                                } else {
+                                    // Send button: save to DB and enqueue worker
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        // Combine URL and note text
+                                        val combinedNote = if (separateUrl != null) {
+                                            if (note.trim().isNotBlank()) {
+                                                "$separateUrl ${note.trim()}"
+                                            } else {
+                                                separateUrl!!
+                                            }
+                                        } else {
+                                            note
                                         }
+                                        
+                                        // If no image, try to grab preview from URL
+                                        var localImageUri: Uri? = sharedImage?.let { copyToInternal(it) } ?: capturedImage
+                                        var enrichedNote = combinedNote
+                                        if (localImageUri == null && separateUrl != null) {
+                                            localImageUri = fetchOgImageToFiles(this@ShareTargetActivity, separateUrl!!)
+                                            
+                                            // Extract Reddit text if it's a Reddit URL
+                                            val redditText = extractRedditTextFromUrl(separateUrl!!)
+                                            if (!redditText.isNullOrBlank()) {
+                                                enrichedNote = if (combinedNote.isBlank()) redditText else "$combinedNote\n\n$redditText"
+                                            }
+                                        }
+                                        val appDb = db(applicationContext)
+                                        val repo = MemoryRepository(appDb)
+                                        val entity = MemoryEntity(
+                                            imageUri = localImageUri?.toString(),
+                                            noteText = enrichedNote.ifBlank { null },
+                                            audioUri = recordedFile?.let { Uri.fromFile(it).toString() },
+                                        )
+                                        repo.saveAndQueue(entity, applicationContext)
                                     }
-                                    val appDb = db(applicationContext)
-                                    val repo = MemoryRepository(appDb)
-                                    val entity = MemoryEntity(
-                                        imageUri = localImageUri?.toString(),
-                                        noteText = note.ifBlank { null },
-                                        audioUri = recordedFile?.let { Uri.fromFile(it).toString() },
-                                    )
-                                    repo.saveAndQueue(entity, applicationContext)
+                                    finish()
                                 }
-                                finish()
                             }) {
                                 androidx.compose.material3.Surface(shape = RoundedCornerShape(50), color = Color(0xFF2A2A2F)) {
-                                    Icon(imageVector = Icons.Filled.Send, contentDescription = "Send", tint = Color(0xFFFFD54F), modifier = Modifier.size(36.dp).padding(8.dp))
+                                    Icon(
+                                        imageVector = if (isRecording) Icons.Filled.Save else Icons.Filled.Send,
+                                        contentDescription = if (isRecording) "Save recording" else "Send",
+                                        tint = Color(0xFFFFD54F),
+                                        modifier = Modifier.size(36.dp).padding(8.dp)
+                                    )
                                 }
                             }
                         }
@@ -533,8 +700,104 @@ private fun guessImageExt(contentType: String?): String {
     }
 }
 
+// Fetch HTML and extract Reddit text
+private fun extractRedditTextFromUrl(url: String): String? {
+    return try {
+        val client = okhttp3.OkHttpClient.Builder()
+            .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+        val req = okhttp3.Request.Builder()
+            .url(url)
+            .header("User-Agent", "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Mobile Safari/537.36")
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            .header("Accept-Language", "en-US,en;q=0.8")
+            .build()
+        client.newCall(req).execute().use { resp ->
+            val html = resp.body?.string() ?: return null
+            extractRedditText(html, url)
+        }
+    } catch (e: Exception) {
+        android.util.Log.e("ShareTargetActivity", "Failed to extract Reddit text", e)
+        null
+    }
+}
+
+// Extract Reddit post title and text content from HTML
+private fun extractRedditText(html: String, pageUrl: String): String? {
+    val hostLower = try {
+        java.net.URI(pageUrl).host?.lowercase() ?: ""
+    } catch (_: Exception) {
+        ""
+    }
+    
+    if (!hostLower.contains("reddit.com") && !hostLower.contains("redd.it")) {
+        return null
+    }
+    
+    val parts = mutableListOf<String>()
+    
+    // Extract post title from og:title or title tag
+    run {
+        val ogTitleRegex = Regex("<meta[^>]*property=['\"]og:title['\"][^>]*content=['\"]([^'\"]+)['\"][^>]*>", RegexOption.IGNORE_CASE)
+        val match = ogTitleRegex.find(html)
+        val title = match?.groupValues?.getOrNull(1)?.let { 
+            it.replace("&amp;", "&")
+              .replace("&lt;", "<")
+              .replace("&gt;", ">")
+              .replace("&quot;", "\"")
+              .replace("&#39;", "'")
+              .replace("\\u0026", "&")
+        }
+        if (!title.isNullOrBlank() && !title.contains("reddit", ignoreCase = true)) {
+            parts.add("Title: $title")
+        }
+    }
+    
+    // Extract selftext from JSON data
+    run {
+        val selftextRegex = Regex("\"selftext\"\\s*:\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE)
+        val match = selftextRegex.find(html)
+        val text = match?.groupValues?.getOrNull(1)?.let {
+            it.replace("\\n", "\n")
+              .replace("\\t", "\t")
+              .replace("\\r", "")
+              .replace("&amp;", "&")
+              .replace("&lt;", "<")
+              .replace("&gt;", ">")
+              .replace("&quot;", "\"")
+              .replace("&#39;", "'")
+              .replace("\\u0026", "&")
+        }
+        if (!text.isNullOrBlank() && text.length > 10) {
+            parts.add("\n$text")
+        }
+    }
+    
+    // If no selftext, try og:description
+    if (parts.size <= 1) {
+        val ogDescRegex = Regex("<meta[^>]*property=['\"]og:description['\"][^>]*content=['\"]([^'\"]+)['\"][^>]*>", RegexOption.IGNORE_CASE)
+        val match = ogDescRegex.find(html)
+        val desc = match?.groupValues?.getOrNull(1)?.let {
+            it.replace("&amp;", "&")
+              .replace("&lt;", "<")
+              .replace("&gt;", ">")
+              .replace("&quot;", "\"")
+              .replace("&#39;", "'")
+              .replace("\\u0026", "&")
+        }
+        if (!desc.isNullOrBlank() && desc.length > 10) {
+            parts.add("\n$desc")
+        }
+    }
+    
+    return if (parts.isNotEmpty()) parts.joinToString("") else null
+}
+
 // Parse HTML for common image hints and resolve against the page URL.
 private fun findBestImageUrl(html: String, pageUrl: String): String? {
+    android.util.Log.d("ShareTargetActivity", "findBestImageUrl called for: $pageUrl")
+    
     fun resolve(href: String): String {
         val trimmed = href.trim()
         if (trimmed.startsWith("//")) {
@@ -566,12 +829,142 @@ private fun findBestImageUrl(html: String, pageUrl: String): String? {
         val m = r.find(html)
         if (m != null) {
             val href = m.groupValues.getOrNull(idx)
-            if (!href.isNullOrBlank()) return resolve(href)
+            // Filter out Reddit avatars and community icons
+            if (!href.isNullOrBlank() && 
+                !href.contains("communityIcon") && 
+                !href.contains("snoovatar") && 
+                !href.contains("/avatars/") &&
+                !href.contains("headshot")) {
+                android.util.Log.d("ShareTargetActivity", "Found image via standard OG tag: $href")
+                return resolve(href)
+            } else if (href?.contains("communityIcon") == true || href?.contains("snoovatar") == true) {
+                android.util.Log.d("ShareTargetActivity", "Skipping Reddit avatar/icon: $href")
+            }
         }
     }
 
-    // Amazon-specific fallbacks
+    // Site-specific fallbacks
     val hostLower = try { java.net.URI(pageUrl).host?.lowercase() ?: "" } catch (_: Exception) { "" }
+    
+    // Reddit-specific extraction using JSON API
+    if (hostLower.contains("reddit.com") || hostLower.contains("redd.it")) {
+        android.util.Log.d("ShareTargetActivity", "Detected Reddit URL, trying JSON API")
+        try {
+            // Use Reddit's JSON API by adding .json to the URL (strip query params first)
+            val cleanUrl = pageUrl.substringBefore("?")
+            val jsonUrl = if (cleanUrl.endsWith("/")) "${cleanUrl}.json" else "$cleanUrl.json"
+            android.util.Log.d("ShareTargetActivity", "Reddit: Fetching JSON from: $jsonUrl")
+            val client = okhttp3.OkHttpClient.Builder()
+                .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
+            val req = okhttp3.Request.Builder()
+                .url(jsonUrl)
+                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
+                .build()
+            val resp = client.newCall(req).execute()
+            val jsonStr = resp.body?.string()
+            
+            android.util.Log.d("ShareTargetActivity", "Reddit: JSON response length: ${jsonStr?.length ?: 0}")
+            
+            if (!jsonStr.isNullOrBlank()) {
+                // Parse as JSON and look for post data
+                try {
+                    val jsonObj = org.json.JSONArray(jsonStr)
+                    val postData = jsonObj.getJSONObject(0)
+                        .getJSONObject("data")
+                        .getJSONArray("children")
+                        .getJSONObject(0)
+                        .getJSONObject("data")
+                    
+                    // Log available fields for debugging
+                    android.util.Log.d("ShareTargetActivity", "Reddit JSON: Available fields: ${postData.keys().asSequence().toList()}")
+                    
+                    // Try various image fields
+                    val imageFields = listOf("url", "url_overridden_by_dest")
+                    for (field in imageFields) {
+                        val imgUrl = postData.optString(field)
+                        android.util.Log.d("ShareTargetActivity", "Reddit JSON: Field '$field' = $imgUrl")
+                        if (imgUrl.isNotBlank() && 
+                            (imgUrl.endsWith(".jpg") || imgUrl.endsWith(".png") || imgUrl.endsWith(".gif") || imgUrl.endsWith(".webp")) &&
+                            !imgUrl.contains("avatar") && !imgUrl.contains("snoovatar")) {
+                            android.util.Log.d("ShareTargetActivity", "Reddit JSON: Found image in field '$field': $imgUrl")
+                            return resolve(imgUrl)
+                        }
+                    }
+                    
+                    // Try gallery posts (multiple images)
+                    val isGallery = postData.optBoolean("is_gallery", false)
+                    android.util.Log.d("ShareTargetActivity", "Reddit JSON: Is gallery: $isGallery")
+                    if (isGallery) {
+                        val mediaMetadata = postData.optJSONObject("media_metadata")
+                        if (mediaMetadata != null) {
+                            val keys = mediaMetadata.keys()
+                            if (keys.hasNext()) {
+                                val firstKey = keys.next()
+                                val firstMedia = mediaMetadata.getJSONObject(firstKey)
+                                val mediaType = firstMedia.optString("e")
+                                android.util.Log.d("ShareTargetActivity", "Reddit gallery: First media type: $mediaType")
+                                
+                                if (mediaType == "Image") {
+                                    val source = firstMedia.optJSONObject("s")
+                                    val imgUrl = source?.optString("u")?.replace("&amp;", "&")
+                                    if (!imgUrl.isNullOrBlank()) {
+                                        android.util.Log.d("ShareTargetActivity", "Reddit gallery: Found image: $imgUrl")
+                                        return resolve(imgUrl)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Try preview images
+                    val preview = postData.optJSONObject("preview")
+                    android.util.Log.d("ShareTargetActivity", "Reddit JSON: Has preview object: ${preview != null}")
+                    if (preview != null) {
+                        val images = preview.optJSONArray("images")
+                        android.util.Log.d("ShareTargetActivity", "Reddit JSON: Preview images array length: ${images?.length() ?: 0}")
+                        if (images != null && images.length() > 0) {
+                            val source = images.getJSONObject(0).optJSONObject("source")
+                            val srcUrl = source?.optString("url")?.replace("&amp;", "&")
+                            android.util.Log.d("ShareTargetActivity", "Reddit JSON: Preview source URL: $srcUrl")
+                            if (!srcUrl.isNullOrBlank()) {
+                                android.util.Log.d("ShareTargetActivity", "Reddit JSON: Found preview source: $srcUrl")
+                                return resolve(srcUrl)
+                            }
+                        }
+                    }
+                    
+                    android.util.Log.w("ShareTargetActivity", "Reddit JSON: Parsed but no usable image fields found")
+                } catch (e: Exception) {
+                    android.util.Log.w("ShareTargetActivity", "Reddit JSON: Parse failed: ${e.message}, trying regex")
+                    // Fallback to regex if JSON parsing fails
+                    val imgPatterns = listOf(
+                        "\"url\"\\s*:\\s*\"(https://i\\.redd\\.it/[^\"]+\\.(jpg|png|gif|webp))\"" to "i.redd.it",
+                        "\"url\"\\s*:\\s*\"(https://preview\\.redd\\.it/[^\"]+\\.(jpg|png|gif|webp))\"" to "preview.redd.it"
+                    )
+                    
+                    for ((pattern, name) in imgPatterns) {
+                        val r = Regex(pattern, RegexOption.IGNORE_CASE)
+                        val m = r.find(jsonStr)
+                        val href = m?.groupValues?.getOrNull(1)?.replace("\\u0026", "&")?.replace("&amp;", "&")
+                        if (!href.isNullOrBlank() && !href.contains("avatar") && !href.contains("snoovatar")) {
+                            android.util.Log.d("ShareTargetActivity", "Reddit JSON regex: Found $name: $href")
+                            return resolve(href)
+                        }
+                    }
+                }
+            } else {
+                android.util.Log.w("ShareTargetActivity", "Reddit: JSON response was empty")
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("ShareTargetActivity", "Reddit JSON API failed: ${e.message}")
+        }
+        android.util.Log.w("ShareTargetActivity", "Reddit: JSON API didn't work, trying HTML fallback")
+        // Fall through to standard OG tag extraction
+    }
+    
+    // Amazon-specific fallbacks
     if (hostLower.contains("amazon.") || hostLower.contains("amzn.")) {
         // 1) landingImage with data-old-hires
         run {
@@ -631,7 +1024,19 @@ private fun findBestImageUrl(html: String, pageUrl: String): String? {
         val r = Regex("<img[^>]*src=['\"]([^'\"]+)['\"][^>]*>", RegexOption.IGNORE_CASE)
         val m = r.find(html)
         val href = m?.groupValues?.getOrNull(1)
-        if (!href.isNullOrBlank()) return resolve(href)
+        // Filter out Reddit avatars, community icons and small images
+        if (!href.isNullOrBlank() && 
+            !href.contains("communityIcon") && 
+            !href.contains("snoovatar") && 
+            !href.contains("/avatars/") &&
+            !href.contains("headshot") &&
+            !href.contains("width=96")) {
+            android.util.Log.d("ShareTargetActivity", "Found image in img src tag: $href")
+            return resolve(href)
+        } else if (href?.contains("communityIcon") == true || href?.contains("snoovatar") == true || href?.contains("width=96") == true) {
+            android.util.Log.d("ShareTargetActivity", "Skipping small/avatar/icon img tag: $href")
+        }
     }
+    android.util.Log.w("ShareTargetActivity", "No image found for URL: $pageUrl")
     return null
 }

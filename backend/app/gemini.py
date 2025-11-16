@@ -46,14 +46,18 @@ def _build_prompt(note: str, stt_text: str, now_utc: Optional[str], existing_col
     now_local = datetime.datetime.now(datetime.timezone.utc).astimezone()
     timezone_offset = now_local.strftime("%z")
     now_local_iso = now_local.isoformat()
+    # Default language instruction: auto-detect from user input
+    language_instruction = "Detect the language from the user's input and respond in that language.\n"
+    
     return (
         "You are a Memory Assistant inside a personal knowledge app. Return ONLY valid JSON.\n"
+        f"{language_instruction}"
         "Your goal is to turn the inputs (image + note + transcript) into a concise memory summary, not a photo caption.\n"
         "Produce a JSON object with this exact schema: \n"
         '{"title": string, "summary": string, "todos": string[], "reminders": [{"event": string, "datetime": string}], "urls": string[], "collections": string[]}.\n'
         "Summary style: 2–5 short sentences focused on the memory's key information.\n"
         "- Speak as a memory manager, not as a photographer.\n"
-        "- NEVER say phrases like 'the image shows', 'the photo shows', 'in the picture'.\n"
+        "- NEVER say phrases like 'the image shows', 'the photo shows', 'in the picture', 'the user wants'.\n"
         "- Begin with the subject directly (e.g., 'Burger sauce recipe: ...'), not 'The image shows a burger ...'.\n"
         "- Highlight entities (people/orgs/products), numbers (prices/qty), decisions/actions, deadlines, and must-know facts.\n"
         "- Prefer factual, bullet-like sentences separated by periods; no first-person voice.\n"

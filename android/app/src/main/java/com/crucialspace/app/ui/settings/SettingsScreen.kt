@@ -2,12 +2,15 @@ package com.crucialspace.app.ui.settings
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.IconButton
@@ -42,6 +45,14 @@ import androidx.core.content.pm.ShortcutInfoCompat
 import android.content.Intent
 import com.crucialspace.app.share.ShareTargetActivity
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import com.crucialspace.app.update.UpdateChecker
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @Composable
 fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
@@ -51,9 +62,32 @@ fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
 	val secret = remember { mutableStateOf(store.getSharedSecret().orEmpty()) }
 	val localAi = remember { mutableStateOf(store.isLocalAiEnabled()) }
 	val geminiKey = remember { mutableStateOf(store.getGeminiApiKey().orEmpty()) }
+	val languagePref = remember { mutableStateOf(store.getLanguagePreference()) }
+	val showLangMenu = remember { mutableStateOf(false) }
+	val scope = rememberCoroutineScope()
+	val checkingUpdate = remember { mutableStateOf(false) }
+	val updateAvailable = remember { mutableStateOf<com.crucialspace.app.update.GithubRelease?>(null) }
+	val showUpdateDialog = remember { mutableStateOf(false) }
+	
+	val languageOptions = mapOf(
+		"auto" to "Auto-detect",
+		"en" to "English",
+		"es" to "Spanish",
+		"fr" to "French",
+		"de" to "German",
+		"it" to "Italian",
+		"pt" to "Portuguese",
+		"nl" to "Dutch",
+		"pl" to "Polish",
+		"ru" to "Russian",
+		"ja" to "Japanese",
+		"zh" to "Chinese",
+		"ko" to "Korean"
+	)
     val activity = LocalContext.current as android.app.Activity
     val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
-    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val scrollState = rememberScrollState()
+    Column(modifier = Modifier.padding(16.dp).verticalScroll(scrollState), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IconButton(onClick = onBack) { androidx.compose.material3.Icon(Icons.Filled.ArrowBack, contentDescription = "Back") }
             Text("Settings", style = MaterialTheme.typography.headlineSmall)
@@ -143,7 +177,43 @@ fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
             Text("Model: gemini-2.5-flash", style = MaterialTheme.typography.bodySmall, color = Color(0xFFB0B0B0))
         }
 
-        
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .border(2.dp, goldBrush, RoundedCornerShape(24.dp))
+            .padding(12.dp)) {
+            Text("AI Response Language", style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(8.dp))
+            Box {
+                OutlinedButton(
+                    onClick = { showLangMenu.value = true },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray)
+                ) {
+                    Text(languageOptions[languagePref.value] ?: "Auto-detect")
+                }
+                androidx.compose.material3.DropdownMenu(
+                    expanded = showLangMenu.value,
+                    onDismissRequest = { showLangMenu.value = false }
+                ) {
+                    languageOptions.forEach { (code, name) ->
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(name) },
+                            onClick = {
+                                languagePref.value = code
+                                showLangMenu.value = false
+                            }
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "AI will generate summaries, titles, todos, and reminders in the selected language. Auto-detect will use the language from your input.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFFB0B0B0)
+            )
+        }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)) {
             OutlinedButton(
@@ -152,6 +222,7 @@ fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
                     store.setSharedSecret(secret.value)
                     store.setLocalAiEnabled(localAi.value)
                     store.setGeminiApiKey(geminiKey.value)
+                    store.setLanguagePreference(languagePref.value)
                     onSaved()
                 },
                 shape = RoundedCornerShape(12.dp),
@@ -204,5 +275,74 @@ fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
             ),
             modifier = Modifier.fillMaxWidth()
         ) { Text("Add Enrich shortcut to Home") }
+        
+        // Check for updates
+        OutlinedButton(
+            onClick = {
+                checkingUpdate.value = true
+                scope.launch {
+                    try {
+                        val currentVersion = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                        val release = UpdateChecker.checkForUpdate(currentVersion)
+                        if (release != null) {
+                            updateAvailable.value = release
+                            showUpdateDialog.value = true
+                        } else {
+                            android.widget.Toast.makeText(context, "You're on the latest version!", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        android.widget.Toast.makeText(context, "Failed to check for updates: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                    } finally {
+                        checkingUpdate.value = false
+                    }
+                }
+            },
+            enabled = !checkingUpdate.value,
+            shape = RoundedCornerShape(12.dp),
+            border = androidx.compose.foundation.BorderStroke(2.dp, Color.White),
+            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                containerColor = Color(0xFF1D1D20),
+                contentColor = Color.White
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) { 
+            if (checkingUpdate.value) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(if (checkingUpdate.value) "Checking..." else "Check for updates")
+        }
+        
+        // Update dialog
+        if (showUpdateDialog.value && updateAvailable.value != null) {
+            val release = updateAvailable.value!!
+            AlertDialog(
+                onDismissRequest = { showUpdateDialog.value = false },
+                title = { Text("Update Available") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Version ${release.version} is available!")
+                        Text(
+                            text = release.body,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        UpdateChecker.downloadAndInstallApk(context, release.downloadUrl, release.version)
+                        showUpdateDialog.value = false
+                    }) {
+                        Text("Download")
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = { showUpdateDialog.value = false }) {
+                        Text("Later")
+                    }
+                }
+            )
+        }
     }
 }

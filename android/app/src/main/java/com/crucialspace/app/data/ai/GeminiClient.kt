@@ -201,8 +201,28 @@ class GeminiClient(private val context: Context) {
         val nowLocal = java.time.ZonedDateTime.now(java.time.ZoneId.systemDefault())
         val timezoneOffset = nowLocal.offset.toString()
         val nowLocalIso = nowLocal.toString()
+        
+        val languagePref = settings.getLanguagePreference()
+        val languageInstruction = when (languagePref) {
+            "auto" -> "Detect the language from the user's input and respond in that language."
+            "en" -> "Respond in English."
+            "es" -> "Respond in Spanish."
+            "fr" -> "Respond in French."
+            "de" -> "Respond in German."
+            "it" -> "Respond in Italian."
+            "pt" -> "Respond in Portuguese."
+            "nl" -> "Respond in Dutch."
+            "pl" -> "Respond in Polish."
+            "ru" -> "Respond in Russian."
+            "ja" -> "Respond in Japanese."
+            "zh" -> "Respond in Chinese."
+            "ko" -> "Respond in Korean."
+            else -> "Detect the language from the user's input and respond in that language."
+        }
+        
         return (
             "You are a Memory Assistant inside a personal knowledge app. Return ONLY valid JSON.\n" +
+            "$languageInstruction\n" +
             "Your goal is to turn the inputs (image + note + transcript) into a concise memory summary, not a photo caption.\n" +
             "Produce a JSON object with this exact schema: \n" +
             "{\"title\": string, \"summary\": string, \"todos\": string[], \"reminders\": [{\"event\": string, \"datetime\": string}], \"urls\": string[], \"collections\": string[]}.\n" +

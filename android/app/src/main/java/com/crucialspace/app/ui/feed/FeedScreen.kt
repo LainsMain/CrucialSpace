@@ -425,12 +425,23 @@ fun MemoryCard(item: MemoryEntity, isSelected: Boolean = false, onClick: () -> U
                         .background(Brush.verticalGradient(listOf(Color(0x00000000), Color(0x88000000), Color(0xCC000000))))
                 )
                 Column(modifier = Modifier.align(Alignment.BottomStart).padding(horizontal = 10.dp, vertical = 8.dp)) {
-                    Text(
-                        text = item.aiTitle ?: item.noteText ?: "",
-                        color = Color.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (!item.audioUri.isNullOrBlank()) {
+                            Icon(
+                                Icons.Filled.Mic, 
+                                contentDescription = "Audio", 
+                                tint = Color(0xFFFFD54F), 
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Text(
+                            text = item.aiTitle ?: item.noteText ?: "",
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                    }
                     if (!item.aiSummary.isNullOrBlank()) {
                         Spacer(Modifier.height(2.dp))
                         MarkdownCompactText(
