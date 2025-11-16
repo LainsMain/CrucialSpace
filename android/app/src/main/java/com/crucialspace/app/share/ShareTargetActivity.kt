@@ -855,8 +855,26 @@ private fun findBestImageUrl(html: String, pageUrl: String): String? {
     if (hostLower.contains("reddit.com") || hostLower.contains("redd.it")) {
         android.util.Log.d("ShareTargetActivity", "Detected Reddit URL, trying JSON API")
         try {
+            // Handle shortened share links (e.g., /r/subreddit/s/xxxxx)
+            var targetUrl = pageUrl
+            if (pageUrl.contains("/s/")) {
+                android.util.Log.d("ShareTargetActivity", "Reddit: Detected shortened share link, following redirect")
+                val client = okhttp3.OkHttpClient.Builder()
+                    .followRedirects(true)
+                    .followSslRedirects(true)
+                    .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                    .build()
+                val headReq = okhttp3.Request.Builder()
+                    .url(pageUrl)
+                    .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
+                    .build()
+                val headResp = client.newCall(headReq).execute()
+                targetUrl = headResp.request.url.toString()
+                android.util.Log.d("ShareTargetActivity", "Reddit: Resolved to: $targetUrl")
+            }
+            
             // Use Reddit's JSON API by adding .json to the URL (strip query params first)
-            val cleanUrl = pageUrl.substringBefore("?")
+            val cleanUrl = targetUrl.substringBefore("?")
             val jsonUrl = if (cleanUrl.endsWith("/")) "${cleanUrl}.json" else "$cleanUrl.json"
             android.util.Log.d("ShareTargetActivity", "Reddit: Fetching JSON from: $jsonUrl")
             val client = okhttp3.OkHttpClient.Builder()
