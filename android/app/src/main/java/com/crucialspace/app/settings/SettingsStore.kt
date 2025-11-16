@@ -63,6 +63,14 @@ class SettingsStore(private val context: Context) {
 		prefs.edit().putString(KEY_EMBEDDING_MODEL, model).apply()
 	}
 
+	fun getLanguagePreference(): String {
+		return prefs.getString(KEY_LANGUAGE_PREF, "auto")!!
+	}
+
+	fun setLanguagePreference(language: String) {
+		prefs.edit().putString(KEY_LANGUAGE_PREF, language).apply()
+	}
+
 	companion object {
 		private const val KEY_BASE_URL = "base_url"
 		private const val KEY_SECRET = "secret"
@@ -70,5 +78,6 @@ class SettingsStore(private val context: Context) {
 		private const val KEY_GEMINI_API_KEY = "gemini_api_key"
 		private const val KEY_GEMINI_MODEL = "gemini_model"
 		private const val KEY_EMBEDDING_MODEL = "embedding_model"
+		private const val KEY_LANGUAGE_PREF = "language_preference"
 	}
 }

@@ -57,10 +57,7 @@ class UploadMemoryWorker(appContext: Context, params: WorkerParameters) : Corout
 						val remindersJson = remindersAdapter.toJson(normalizedReminders)
 						val safeTitle = result.title ?: result.summary
 						val embeddingJson = (result.embedding ?: emptyList<Double>()).joinToString(prefix = "[", postfix = "]") { it.toString() }
-						dao.markSuccess(m.id, safeTitle, result.summary, todosJson, urlsJson, remindersJson, embeddingJson, "SYNCED")
-						if (!result.transcript.isNullOrBlank()) {
-							dao.updateNoteText(m.id, result.transcript)
-						}
+					dao.markSuccess(m.id, safeTitle, result.summary, todosJson, urlsJson, remindersJson, embeddingJson, result.transcript, "SYNCED")
 						try {
 							val repo = com.crucialspace.app.data.repo.MemoryRepository(appDb)
 							repo.assignCollections(m.id, result.collections)
@@ -98,10 +95,7 @@ class UploadMemoryWorker(appContext: Context, params: WorkerParameters) : Corout
 						val remindersJson = remindersAdapter.toJson(normalizedReminders)
 						val safeTitle = result.title ?: result.summary
 						val embeddingJson = (result.embedding ?: emptyList<Double>()).joinToString(prefix = "[", postfix = "]") { it.toString() }
-						dao.markSuccess(m.id, safeTitle, result.summary, todosJson, urlsJson, remindersJson, embeddingJson, "SYNCED")
-						if (!result.transcript.isNullOrBlank()) {
-							dao.updateNoteText(m.id, result.transcript)
-						}
+					dao.markSuccess(m.id, safeTitle, result.summary, todosJson, urlsJson, remindersJson, embeddingJson, result.transcript, "SYNCED")
 						try {
 							val repo = com.crucialspace.app.data.repo.MemoryRepository(appDb)
 							repo.assignCollections(m.id, result.collections)

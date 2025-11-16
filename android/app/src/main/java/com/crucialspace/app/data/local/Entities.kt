@@ -11,6 +11,7 @@ data class MemoryEntity(
 	val imageUri: String?,
 	val noteText: String?,
 	val audioUri: String?,
+	val audioTranscript: String? = null,
     val aiTitle: String? = null,
 	val aiSummary: String? = null,
 	val aiTodosJson: String? = null,

@@ -99,11 +99,23 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DetailScreen(id: String, onClose: () -> Unit) {
 	val context = LocalContext.current
+	
+	// Clipboard helper function
+	fun copyToClipboard(label: String, text: String) {
+		val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+		val clip = ClipData.newPlainText(label, text)
+		clipboard.setPrimaryClip(clip)
+		Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+	}
 	val state = remember { mutableStateOf<MemoryEntity?>(null) }
 	LaunchedEffect(id) {
 		state.value = withContext(Dispatchers.IO) {
@@ -281,7 +293,12 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp)
-                            .let { m -> if (!isEditing) m.clickable { editingSummary = true } else m },
+                            .let { m -> 
+                                if (!isEditing) m.combinedClickable(
+                                    onClick = { editingSummary = true },
+                                    onLongClick = { copyToClipboard("Summary", item.aiSummary ?: "") }
+                                ) else m 
+                            },
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (isEditing) {
@@ -320,10 +337,14 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
                 }
             }
         }
-        // THEN: Voice note or plain text note under the AI text
+        // THEN: Voice note and/or plain text note under the AI text
+        // Only show audio section if audio exists
         if (!item.audioUri.isNullOrBlank()) {
-            AudioSection(audioUri = item.audioUri!!, transcript = item.noteText)
-        } else {
+            AudioSection(audioUri = item.audioUri!!, transcript = item.audioTranscript)
+        }
+        
+        // Only show text note section if text note exists (independent of audio)
+        if (!item.noteText.isNullOrBlank()) {
             // Editable Note
             run {
                 val isEditing = editingNote
@@ -362,7 +383,14 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
                             )
                             LaunchedEffect(isEditing) { if (isEditing) focusRequester.requestFocus() }
                         } else {
-                            Text(item.noteText ?: "", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.clickable { editingNote = true })
+                            Text(
+                                item.noteText ?: "", 
+                                style = MaterialTheme.typography.bodyLarge, 
+                                modifier = Modifier.combinedClickable(
+                                    onClick = { editingNote = true },
+                                    onLongClick = { copyToClipboard("Note", item.noteText ?: "") }
+                                )
+                            )
                         }
                     } else {
                         Text("", modifier = Modifier.clickable { editingNote = true })
@@ -461,7 +489,13 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
                     )
                     LaunchedEffect(isEditing) { if (isEditing) focusRequester.requestFocus() }
                 } else if (todos.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.clickable { text = todos.joinToString("\n"); editingTodos = true }) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp), 
+                        modifier = Modifier.combinedClickable(
+                            onClick = { text = todos.joinToString("\n"); editingTodos = true },
+                            onLongClick = { copyToClipboard("To-Dos", todos.joinToString("\n")) }
+                        )
+                    ) {
                         todos.forEach { t ->
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 val checked = doneSet.contains(t)
@@ -481,22 +515,32 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
         }
         if (reminders.isNotEmpty()) {
             SectionCard(title = "Reminders") {
-                reminders.forEachIndexed { idx, r ->
-                    ReminderRow(
-                        text = r.event,
-                        time = r.datetime,
-                        onLongPress = { editingIndex = idx; showReminderOptions = true; editingText = r.event; editingDateTime = r.datetime }
-                    )
+                Column(modifier = Modifier.combinedClickable(
+                    onClick = {},
+                    onLongClick = { copyToClipboard("Reminders", reminders.joinToString("\n") { "${it.event} - ${formatShortTime(it.datetime)}" }) }
+                )) {
+                    reminders.forEachIndexed { idx, r ->
+                        ReminderRow(
+                            text = r.event,
+                            time = r.datetime,
+                            onLongPress = { editingIndex = idx; showReminderOptions = true; editingText = r.event; editingDateTime = r.datetime }
+                        )
+                    }
                 }
             }
         }
         if (urls.isNotEmpty()) {
             SectionCard(title = "Links") {
-                urls.forEach { u ->
-                    Text(u, color = Color(0xFF5ED1C1), modifier = Modifier.clickable {
-                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(u))
-                        context.startActivity(intent)
-                    })
+                Column {
+                    urls.forEach { u ->
+                        Text(u, color = Color(0xFF5ED1C1), modifier = Modifier.combinedClickable(
+                            onClick = {
+                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(u))
+                                context.startActivity(intent)
+                            },
+                            onLongClick = { copyToClipboard("Link", u) }
+                        ))
+                    }
                 }
             }
         }
@@ -712,7 +756,12 @@ private fun AudioSection(audioUri: String, transcript: String?) {
         }
     }
     SectionCard(title = "Voice Note") {
-        Row(modifier = Modifier.fillMaxWidth().clickable { showTranscript = !showTranscript }, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (!transcript.isNullOrBlank()) Modifier.clickable { showTranscript = !showTranscript } else Modifier),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             IconButton(onClick = {
                 if (player != null) {
                     if (player.isPlaying) {
@@ -789,7 +838,12 @@ private fun AudioSection(audioUri: String, transcript: String?) {
             }
         }
         if (showTranscript && !transcript.isNullOrBlank()) {
-            Text(transcript)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = transcript,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
         }
     }
 }
