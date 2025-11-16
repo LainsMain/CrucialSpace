@@ -6,6 +6,8 @@
 
 - **Fixed Reddit preview image not saving**: Reddit images were displaying in the enrich screen but not being saved to memories. The preview image is now properly included when creating the memory.
 
+- **Fixed shortened Reddit URLs**: Reddit share links (format: `/r/subreddit/s/xxxxx`) now work correctly. The app follows the redirect to get the full post URL before extracting images.
+
 ## v1.0.2 (2024-11-16)
 
 ### New Features
