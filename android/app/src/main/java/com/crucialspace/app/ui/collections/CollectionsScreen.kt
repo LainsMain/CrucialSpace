@@ -183,9 +183,13 @@ fun CollectionsScreen(onOpenCollection: (String) -> Unit, onOpenSearch: () -> Un
             )
             Spacer(Modifier.height(8.dp))
         }
-        // Grid-like 2-column layout similar to Memory grid
-        Box(modifier = Modifier.weight(1f)) {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxSize().padding(top = 4.dp, bottom = 80.dp)) {
+        // Content + FAB layered in a Box so the FAB doesn't consume layout space
+        Box(modifier = Modifier.weight(1f).fillMaxSize()) {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize().padding(top = 4.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 72.dp)
+            ) {
                 items(filteredCollections.chunked(2)) { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                         row.forEach { c ->
@@ -301,12 +305,17 @@ fun CollectionsScreen(onOpenCollection: (String) -> Unit, onOpenSearch: () -> Un
                         )
                     )
             )
-        }
 
-        FloatingActionButton(onClick = { showNew = true }, containerColor = Color(0xFF1D1D20), contentColor = Color.White, modifier = Modifier.align(Alignment.End)) {
-            Icon(Icons.Filled.Add, contentDescription = "New collection")
+            // New Collection button (FAB)
+            FloatingActionButton(
+                onClick = { showNew = true },
+                containerColor = Color(0xFF1D1D20),
+                contentColor = Color.White,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = "New collection")
+            }
         }
-
     }
 
     if (showNew) {
