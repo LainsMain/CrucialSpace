@@ -2,6 +2,10 @@
 
 ## v1.0.3 (2024-11-16)
 
+### New Features
+
+- **Automatic Update Check on Startup**: The app now checks for updates automatically when launched and shows a notification if a new version is available.
+
 ### Bug Fixes
 
 - **Fixed Reddit preview image not saving**: Reddit images were displaying in the enrich screen but not being saved to memories. The preview image is now properly included when creating the memory.
