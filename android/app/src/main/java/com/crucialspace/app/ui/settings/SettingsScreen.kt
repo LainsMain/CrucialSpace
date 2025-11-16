@@ -58,9 +58,6 @@ import androidx.compose.foundation.verticalScroll
 fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
 	val context = LocalContext.current
 	val store = remember { SettingsStore(context) }
-	val base = remember { mutableStateOf(store.getBaseUrl()) }
-	val secret = remember { mutableStateOf(store.getSharedSecret().orEmpty()) }
-	val localAi = remember { mutableStateOf(store.isLocalAiEnabled()) }
 	val geminiKey = remember { mutableStateOf(store.getGeminiApiKey().orEmpty()) }
 	val languagePref = remember { mutableStateOf(store.getLanguagePreference()) }
 	val showLangMenu = remember { mutableStateOf(false) }
@@ -101,59 +98,7 @@ fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
             end = androidx.compose.ui.geometry.Offset(shift.value + 300f, 200f)
         )
 
-        // No model selector; always uses gemini-2.5-flash
-
-        Column(modifier = Modifier
-            .fillMaxWidth()
-            .border(2.dp, goldBrush, RoundedCornerShape(24.dp))
-            .padding(8.dp)) {
-            OutlinedTextField(
-                value = base.value,
-                onValueChange = { base.value = it },
-                label = { Text("Base URL") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor = Color.White,
-                    focusedContainerColor = Color(0xFF1D1D20),
-                    unfocusedContainerColor = Color(0xFF1D1D20)
-                )
-            )
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = secret.value,
-                onValueChange = { secret.value = it },
-                label = { Text("Shared Secret") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor = Color.White,
-                    focusedContainerColor = Color(0xFF1D1D20),
-                    unfocusedContainerColor = Color(0xFF1D1D20)
-                )
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "Base URL and Shared Secret are only needed when using a backend. If you use Gemini directly, you can leave these blank.",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFFB0B0B0)
-            )
-        }
-
-        Column(modifier = Modifier
-            .fillMaxWidth()
-            .border(2.dp, goldBrush, RoundedCornerShape(24.dp))
-            .padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Text("Use Gemini directly (no backend)")
-                androidx.compose.material3.Switch(checked = localAi.value, onCheckedChange = { localAi.value = it })
-            }
-        }
-
+        // Gemini API Key (required)
         Column(modifier = Modifier
             .fillMaxWidth()
             .border(2.dp, goldBrush, RoundedCornerShape(24.dp))
@@ -174,9 +119,12 @@ fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
                 )
             )
             Spacer(Modifier.height(4.dp))
-            Text("Model: gemini-2.5-flash", style = MaterialTheme.typography.bodySmall, color = Color(0xFFB0B0B0))
+            Text("Model: gemini-2.5-flash (for generation) | text-embedding-004 (for search)", style = MaterialTheme.typography.bodySmall, color = Color(0xFFB0B0B0))
+            Spacer(Modifier.height(4.dp))
+            Text("Get your API key at: https://aistudio.google.com/apikey", style = MaterialTheme.typography.bodySmall, color = Color(0xFF6B9BD1))
         }
 
+        // Language preference
         Column(modifier = Modifier
             .fillMaxWidth()
             .border(2.dp, goldBrush, RoundedCornerShape(24.dp))
@@ -218,9 +166,6 @@ fun SettingsScreen(onSaved: () -> Unit, onBack: () -> Unit = {}) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)) {
             OutlinedButton(
                 onClick = {
-                    store.setBaseUrl(base.value)
-                    store.setSharedSecret(secret.value)
-                    store.setLocalAiEnabled(localAi.value)
                     store.setGeminiApiKey(geminiKey.value)
                     store.setLanguagePreference(languagePref.value)
                     onSaved()

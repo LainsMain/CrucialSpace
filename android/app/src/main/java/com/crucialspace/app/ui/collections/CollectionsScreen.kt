@@ -185,7 +185,7 @@ fun CollectionsScreen(onOpenCollection: (String) -> Unit, onOpenSearch: () -> Un
         }
         // Grid-like 2-column layout similar to Memory grid
         Box(modifier = Modifier.weight(1f)) {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxSize().padding(top = 4.dp)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxSize().padding(top = 4.dp, bottom = 80.dp)) {
                 items(filteredCollections.chunked(2)) { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                         row.forEach { c ->
