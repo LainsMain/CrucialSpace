@@ -529,18 +529,23 @@ class ShareTargetActivity : ComponentActivity() {
                                             note
                                         }
                                         
-                                        // If no image, try to grab preview from URL
-                                        var localImageUri: Uri? = sharedImage?.let { copyToInternal(it) } ?: capturedImage
+                                        // Use already-fetched preview image if available, otherwise fetch now
+                                        var localImageUri: Uri? = sharedImage?.let { copyToInternal(it) } ?: capturedImage ?: previewImage
                                         var enrichedNote = combinedNote
+                                        
+                                        // If still no image and URL exists, fetch it
                                         if (localImageUri == null && separateUrl != null) {
                                             localImageUri = fetchOgImageToFiles(this@ShareTargetActivity, separateUrl!!)
-                                            
-                                            // Extract Reddit text if it's a Reddit URL
+                                        }
+                                        
+                                        // Extract Reddit text if it's a Reddit URL
+                                        if (separateUrl != null) {
                                             val redditText = extractRedditTextFromUrl(separateUrl!!)
                                             if (!redditText.isNullOrBlank()) {
                                                 enrichedNote = if (combinedNote.isBlank()) redditText else "$combinedNote\n\n$redditText"
                                             }
                                         }
+                                        
                                         val appDb = db(applicationContext)
                                         val repo = MemoryRepository(appDb)
                                         val entity = MemoryEntity(

@@ -1,5 +1,11 @@
 # Release Notes
 
+## v1.0.3 (2024-11-16)
+
+### Bug Fixes
+
+- **Fixed Reddit preview image not saving**: Reddit images were displaying in the enrich screen but not being saved to memories. The preview image is now properly included when creating the memory.
+
 ## v1.0.2 (2024-11-16)
 
 ### New Features
