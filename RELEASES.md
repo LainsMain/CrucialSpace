@@ -2,9 +2,20 @@
 
 ## v1.0.4 (2024-11-16)
 
+### Breaking Changes
+
+- **Removed Backend Support**: The app now exclusively uses direct Gemini API integration. Backend/server functionality has been completely removed to simplify the app architecture.
+  - **Migration**: Existing Gemini API keys are preserved. If you were using a custom backend, you'll need to enter a Gemini API key in Settings.
+  - **Why**: Streamlines the app and prepares for future cloud backup feature.
+
 ### New Features
 
 - **Automatic Update Check on Startup**: The app now checks for updates automatically when launched and shows a notification if a new version is available.
+- **Simplified Settings**: Removed backend toggle and server configuration fields. Only Gemini API key and language preference remain.
+
+### Improvements
+
+- **Fixed Collections Bottom Padding**: Collection grid now has proper bottom padding matching the Space screen, preventing content from being cut off by the FAB.
 
 ## v1.0.3 (2024-11-16)
 

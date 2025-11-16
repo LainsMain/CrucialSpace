@@ -29,9 +29,7 @@ class UploadMemoryWorker(appContext: Context, params: WorkerParameters) : Corout
 		val pending = dao.listByStatus("PENDING")
 		if (pending.isEmpty()) return Result.success()
 
-			val settings = SettingsStore(applicationContext)
-			val useLocal = settings.isLocalAiEnabled() && !settings.getGeminiApiKey().isNullOrBlank()
-			val gemini = GeminiClient(applicationContext)
+		val gemini = GeminiClient(applicationContext)
 		val contentResolver = applicationContext.contentResolver
 		val moshi = Moshi.Builder().build()
         val todosType = Types.newParameterizedType(List::class.java, String::class.java)
@@ -41,95 +39,39 @@ class UploadMemoryWorker(appContext: Context, params: WorkerParameters) : Corout
 
 			var transientFailure = false
 		for (m in pending) {
-				var imagePart: MultipartBody.Part? = null
-				var audioPart: MultipartBody.Part? = null
-				var notePart: okhttp3.RequestBody? = null
+			try {
+				// Always use Gemini directly
+				val imgUri = m.imageUri?.let { Uri.parse(it) }
+				val audUri = m.audioUri?.let { Uri.parse(it) }
+				val nowIso = java.time.OffsetDateTime.now(ZoneOffset.UTC).toString()
+				val existing = db(applicationContext).memoryDao().listCollections().map { it.name.trim() }.filter { it.isNotEmpty() }.joinToString(separator = "\n")
+				val result = gemini.analyze(imgUri, m.noteText, audUri, nowIso, existing)
+				val normalizedReminders = normalizeReminders(result.reminders)
+				val todosJson = todosAdapter.toJson(result.todos)
+				val urlsJson = todosAdapter.toJson(result.urls)
+				val remindersJson = remindersAdapter.toJson(normalizedReminders)
+				val safeTitle = result.title ?: result.summary
+				val embeddingJson = (result.embedding ?: emptyList<Double>()).joinToString(prefix = "[", postfix = "]") { it.toString() }
+				dao.markSuccess(m.id, safeTitle, result.summary, todosJson, urlsJson, remindersJson, embeddingJson, result.transcript, "SYNCED")
 				try {
-					if (useLocal) {
-						val imgUri = m.imageUri?.let { Uri.parse(it) }
-						val audUri = m.audioUri?.let { Uri.parse(it) }
-						val nowIso = java.time.OffsetDateTime.now(ZoneOffset.UTC).toString()
-						val existing = db(applicationContext).memoryDao().listCollections().map { it.name.trim() }.filter { it.isNotEmpty() }.joinToString(separator = "\n")
-						val result = gemini.analyze(imgUri, m.noteText, audUri, nowIso, existing)
-						val normalizedReminders = normalizeReminders(result.reminders)
-						val todosJson = todosAdapter.toJson(result.todos)
-						val urlsJson = todosAdapter.toJson(result.urls)
-						val remindersJson = remindersAdapter.toJson(normalizedReminders)
-						val safeTitle = result.title ?: result.summary
-						val embeddingJson = (result.embedding ?: emptyList<Double>()).joinToString(prefix = "[", postfix = "]") { it.toString() }
-					dao.markSuccess(m.id, safeTitle, result.summary, todosJson, urlsJson, remindersJson, embeddingJson, result.transcript, "SYNCED")
-						try {
-							val repo = com.crucialspace.app.data.repo.MemoryRepository(appDb)
-							repo.assignCollections(m.id, result.collections)
-						} catch (_: Throwable) {}
-						normalizedReminders.forEachIndexed { idx, r ->
-							if (!r.datetime.isNullOrBlank()) {
-								ReminderWorker.schedule(
-									applicationContext,
-									uniqueName = "reminder-${m.id}-$idx",
-									whenIso = r.datetime,
-									title = r.event,
-									text = safeTitle,
-									memoryId = m.id,
-									reminderIndex = idx
-								)
-							}
-						}
-					} else {
-						imagePart = m.imageUri?.let { uriString ->
-							uriToPart(contentResolver, Uri.parse(uriString), "image")
-						}
-						audioPart = m.audioUri?.let { uriString ->
-							uriToPart(contentResolver, Uri.parse(uriString), "audio")
-						}
-						notePart = textPart(m.noteText)
-						val nowIso = java.time.OffsetDateTime.now(ZoneOffset.UTC).toString()
-						val nowPart = nowIso.toRequestBody("text/plain".toMediaTypeOrNull())
-						val existing = db(applicationContext).memoryDao().listCollections().map { it.name.trim() }.filter { it.isNotEmpty() }.joinToString(separator = "\n")
-						val existingPart = if (existing.isNotBlank()) existing.toRequestBody("text/plain".toMediaTypeOrNull()) else null
-						val api = ApiService.create(applicationContext)
-						val result = api.process(imagePart, notePart, audioPart, nowPart, existingPart)
-						val normalizedReminders = normalizeReminders(result.reminders)
-						val todosJson = todosAdapter.toJson(result.todos)
-						val urlsJson = todosAdapter.toJson(result.urls)
-						val remindersJson = remindersAdapter.toJson(normalizedReminders)
-						val safeTitle = result.title ?: result.summary
-						val embeddingJson = (result.embedding ?: emptyList<Double>()).joinToString(prefix = "[", postfix = "]") { it.toString() }
-					dao.markSuccess(m.id, safeTitle, result.summary, todosJson, urlsJson, remindersJson, embeddingJson, result.transcript, "SYNCED")
-						try {
-							val repo = com.crucialspace.app.data.repo.MemoryRepository(appDb)
-							repo.assignCollections(m.id, result.collections)
-						} catch (_: Throwable) {}
-						normalizedReminders.forEachIndexed { idx, r ->
-							if (!r.datetime.isNullOrBlank()) {
-								ReminderWorker.schedule(
-									applicationContext,
-									uniqueName = "reminder-${m.id}-$idx",
-									whenIso = r.datetime,
-									title = r.event,
-									text = safeTitle,
-									memoryId = m.id,
-									reminderIndex = idx
-								)
-							}
-						}
+					val repo = com.crucialspace.app.data.repo.MemoryRepository(appDb)
+					repo.assignCollections(m.id, result.collections)
+				} catch (_: Throwable) {}
+				normalizedReminders.forEachIndexed { idx, r ->
+					if (!r.datetime.isNullOrBlank()) {
+						ReminderWorker.schedule(
+							applicationContext,
+							uniqueName = "reminder-${m.id}-$idx",
+							whenIso = r.datetime,
+							title = r.event,
+							text = safeTitle,
+							memoryId = m.id,
+							reminderIndex = idx
+						)
 					}
-				} catch (t: Throwable) {
-                // Try to fetch raw response for debugging
-                try {
-						val ip = imagePart
-						if (ip != null && !useLocal) {
-                        val nowIso2 = java.time.OffsetDateTime.now(ZoneOffset.UTC).toString()
-                        val nowPart2 = nowIso2.toRequestBody("text/plain".toMediaTypeOrNull())
-                        val existing2 = db(applicationContext).memoryDao().listCollections().map { it.name.trim() }.filter { it.isNotEmpty() }.joinToString(separator = "\n")
-                        val existingPart2 = if (existing2.isNotBlank()) existing2.toRequestBody("text/plain".toMediaTypeOrNull()) else null
-						val api = ApiService.create(applicationContext)
-						val raw = api.processRaw(ip, notePart, audioPart, nowPart2, existingPart2)
-                        val body = raw.body()?.string()
-                        android.util.Log.e("UploadMemoryWorker", "process failed; raw=${body}")
-                    }
-                } catch (_: Throwable) {}
-                android.util.Log.e("UploadMemoryWorker", "process failed", t)
+				}
+			} catch (t: Throwable) {
+            android.util.Log.e("UploadMemoryWorker", "process failed", t)
 				if (t is java.net.SocketTimeoutException || t is java.io.IOException) {
 					// retry later
 					dao.markPending(m.id)

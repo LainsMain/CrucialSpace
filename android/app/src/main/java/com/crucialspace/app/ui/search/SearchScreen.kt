@@ -60,8 +60,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 @Composable
 fun SearchScreen(onOpenDetail: (String) -> Unit, onBack: () -> Unit = {}) {
     val context = LocalContext.current
-    val settings = remember { SettingsStore(context) }
-    val useLocal = remember { mutableStateOf(settings.isLocalAiEnabled() && !settings.getGeminiApiKey().isNullOrBlank()) }
     val gemini = remember { GeminiClient(context) }
     val repo = remember { MemoryRepository(db(context)) }
     val allItems by repo.observeAll().collectAsState(initial = emptyList())
@@ -94,7 +92,7 @@ fun SearchScreen(onOpenDetail: (String) -> Unit, onBack: () -> Unit = {}) {
             delay(200)
             try {
                 val emb = withContext(Dispatchers.IO) {
-                    if (useLocal.value) gemini.embed(q) else ApiService.create(context).embed(EmbedRequest(q)).embedding
+                    gemini.embed(q)
                 }
                 val scored = allItems.mapNotNull { m ->
                     val vec = parseEmbedding(m.embeddingJson)
