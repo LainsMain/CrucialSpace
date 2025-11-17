@@ -28,6 +28,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import com.crucialspace.app.ui.components.PillButton
+import com.crucialspace.app.ui.components.OutlinedPillButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -119,19 +121,39 @@ fun FeedScreen(onOpenSettings: () -> Unit, onOpenDetail: (String) -> Unit, onOpe
             Text("Space", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onBackground)
             Spacer(Modifier.weight(1f))
             if (selectedIds.value.isNotEmpty()) {
-                IconButton(onClick = { showBulkMenu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "Actions") }
-                androidx.compose.material3.DropdownMenu(expanded = showBulkMenu, onDismissRequest = { showBulkMenu = false }) {
-                    androidx.compose.material3.DropdownMenuItem(text = { Text("Add to collections") }, onClick = { showBulkMenu = false; showAddToCollections = true })
-                    androidx.compose.material3.DropdownMenuItem(text = { Text("Delete memories") }, onClick = { showBulkMenu = false; showDeleteConfirm = true }, leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null, tint = Color(0xFFFF4D4D)) })
+                Box {
+                    IconButton(onClick = { showBulkMenu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "Actions") }
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = showBulkMenu,
+                        onDismissRequest = { showBulkMenu = false },
+                        shape = MaterialTheme.shapes.medium,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        tonalElevation = 3.dp
+                    ) {
+                        androidx.compose.material3.DropdownMenuItem(text = { Text("Add to collections") }, onClick = { showBulkMenu = false; showAddToCollections = true })
+                        androidx.compose.material3.DropdownMenuItem(text = { Text("Delete memories") }, onClick = { showBulkMenu = false; showDeleteConfirm = true }, leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null, tint = Color(0xFFFF4D4D)) })
+                    }
                 }
             }
-            Surface(shape = RoundedCornerShape(20.dp), tonalElevation = 3.dp) {
+            Surface(
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = 3.dp,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh
+            ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onOpenSearch) {
-                        Icon(androidx.compose.material.icons.Icons.Filled.Search, contentDescription = "Search", tint = Color.White)
+                        Icon(
+                            androidx.compose.material.icons.Icons.Filled.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                     IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Color.White)
+                        Icon(
+                            Icons.Filled.Settings,
+                            contentDescription = "Settings",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
             }
@@ -301,8 +323,9 @@ fun FeedScreen(onOpenSettings: () -> Unit, onOpenDetail: (String) -> Unit, onOpe
                     intent.type = "text/plain"
                     contextObj.startActivity(intent)
                 },
-                containerColor = Color(0xFF1D1D20),
-                contentColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = MaterialTheme.shapes.large,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
             ) {
                 Icon(Icons.Filled.Send, contentDescription = "Enrich")
@@ -313,10 +336,12 @@ fun FeedScreen(onOpenSettings: () -> Unit, onOpenDetail: (String) -> Unit, onOpe
         if (showDeleteConfirm) {
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { showDeleteConfirm = false },
+                shape = MaterialTheme.shapes.extraLarge,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 // Center both buttons in one row
                 confirmButton = {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)) {
-                        androidx.compose.material3.OutlinedButton(
+                        OutlinedPillButton(
                             onClick = {
                                 showDeleteConfirm = false
                                 val ids = selectedIds.value.toList()
@@ -324,22 +349,12 @@ fun FeedScreen(onOpenSettings: () -> Unit, onOpenDetail: (String) -> Unit, onOpe
                                 kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) { repo.deleteMany(ids, ctx) }
                                 selectedIds.value = emptySet()
                             },
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(2.dp, Color(0xFFFF4D4D)),
-                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color(0xFF1D1D20),
-                                contentColor = Color(0xFFFF4D4D)
-                            )
-                        ) { Text("Delete") }
-                        androidx.compose.material3.OutlinedButton(
+                            text = "Delete"
+                        )
+                        OutlinedPillButton(
                             onClick = { showDeleteConfirm = false },
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(2.dp, Color.White),
-                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color(0xFF1D1D20),
-                                contentColor = Color.White
-                            )
-                        ) { Text("Cancel") }
+                            text = "Cancel"
+                        )
                     }
                 },
                 dismissButton = {},
@@ -358,18 +373,28 @@ fun FeedScreen(onOpenSettings: () -> Unit, onOpenDetail: (String) -> Unit, onOpe
             }
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { showAddToCollections = false },
+                shape = MaterialTheme.shapes.extraLarge,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 confirmButton = {
-                    androidx.compose.material3.Button(onClick = {
-                        val memIds = selectedIds.value.toList()
-                        showAddToCollections = false
-                        kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
-                            val collRepo = com.crucialspace.app.data.repo.CollectionRepository(db(context))
-                            memIds.forEach { mid -> selectedColls.forEach { cid -> collRepo.addMemoryToCollection(cid, mid) } }
-                        }
-                        selectedIds.value = emptySet()
-                    }) { Text("Save") }
+                    PillButton(
+                        onClick = {
+                            val memIds = selectedIds.value.toList()
+                            showAddToCollections = false
+                            kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
+                                val collRepo = com.crucialspace.app.data.repo.CollectionRepository(db(context))
+                                memIds.forEach { mid -> selectedColls.forEach { cid -> collRepo.addMemoryToCollection(cid, mid) } }
+                            }
+                            selectedIds.value = emptySet()
+                        },
+                        text = "Save"
+                    )
                 },
-                dismissButton = { androidx.compose.material3.Button(onClick = { showAddToCollections = false }) { Text("Cancel") } },
+                dismissButton = { 
+                    OutlinedPillButton(
+                        onClick = { showAddToCollections = false },
+                        text = "Cancel"
+                    ) 
+                },
                 title = { Text("Add to collections") },
                 text = {
                     androidx.compose.foundation.lazy.LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -391,7 +416,7 @@ fun FeedScreen(onOpenSettings: () -> Unit, onOpenDetail: (String) -> Unit, onOpe
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MemoryCard(item: MemoryEntity, isSelected: Boolean = false, onClick: () -> Unit, onLongPress: () -> Unit) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = MaterialTheme.shapes.large // 24dp - Expressive!
     // Animated gold border when selected
     val border = if (isSelected) {
         val anim = rememberInfiniteTransition(label = "goldSelect")
@@ -488,8 +513,13 @@ fun MemoryCard(item: MemoryEntity, isSelected: Boolean = false, onClick: () -> U
 
 @Composable
 private fun HeroCard(item: MemoryEntity, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(24.dp)
-    Surface(onClick = onClick, shape = shape, tonalElevation = 4.dp) {
+    val shape = MaterialTheme.shapes.large
+    Surface(
+        onClick = onClick,
+        shape = shape,
+        tonalElevation = 4.dp,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh
+    ) {
         Box(modifier = Modifier.fillMaxWidth().height(220.dp).clip(shape)) {
             // subtle multicolor background
             Box(
@@ -538,9 +568,14 @@ private sealed class Hero {
 
 @Composable
 private fun ReminderHeroCard(h: Hero.ReminderHero, onOpenDetail: (String) -> Unit) {
-    val shape = RoundedCornerShape(24.dp)
+    val shape = MaterialTheme.shapes.large
     val ctx = getContext()
-    Surface(onClick = { onOpenDetail(h.memory.id) }, shape = shape, tonalElevation = 4.dp) {
+    Surface(
+        onClick = { onOpenDetail(h.memory.id) },
+        shape = shape,
+        tonalElevation = 4.dp,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh
+    ) {
         Box(modifier = Modifier.fillMaxWidth().height(220.dp).clip(shape)) {
             if (!h.memory.imageUri.isNullOrBlank()) {
                 AsyncImage(model = h.memory.imageUri, contentDescription = null, modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop)
@@ -633,7 +668,7 @@ private data class CollectionSpotlight(
 
 @Composable
 private fun CollectionHeroCard(h: Hero.CollectionHero, onOpenDetail: (String) -> Unit, onOpenCollection: (String) -> Unit) {
-    val shape = RoundedCornerShape(24.dp)
+    val shape = MaterialTheme.shapes.large
     Surface(onClick = { onOpenCollection(h.collection.id) }, shape = shape, tonalElevation = 4.dp) {
         Box(modifier = Modifier.fillMaxWidth().height(220.dp).clip(shape)) {
             // Mosaic background (up to 4 thumbnails)

@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.Alignment
 import kotlinx.coroutines.launch
+import com.crucialspace.app.ui.components.IconPillButton
 
 @Composable
 fun CollectionDetailScreen(id: String, onBack: () -> Unit) {
@@ -72,17 +74,36 @@ fun CollectionDetailScreen(id: String, onBack: () -> Unit) {
 
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconButton(onClick = onBack) { androidx.compose.material3.Icon(Icons.Filled.ArrowBack, contentDescription = "Back") }
-            Text(c.name, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+            IconPillButton(
+                onClick = onBack,
+                icon = Icons.Filled.ArrowBack,
+                size = 48.dp
+            )
+            Text(c.name, style = MaterialTheme.typography.headlineLarge, modifier = Modifier.weight(1f))
             if (selectedIds.isNotEmpty()) {
-                IconButton(onClick = { showBulkMenu = true }) { androidx.compose.material3.Icon(Icons.Filled.MoreVert, contentDescription = "Actions") }
-                androidx.compose.material3.DropdownMenu(expanded = showBulkMenu, onDismissRequest = { showBulkMenu = false }) {
-                    androidx.compose.material3.DropdownMenuItem(text = { Text("Remove from collection") }, onClick = { showBulkMenu = false; showRemoveConfirm = true })
-                    androidx.compose.material3.DropdownMenuItem(text = { Text("Delete memories") }, onClick = { showBulkMenu = false; showDeleteConfirm = true }, leadingIcon = { androidx.compose.material3.Icon(Icons.Filled.Delete, contentDescription = null, tint = Color(0xFFFF4D4D)) })
+                Box {
+                    IconButton(onClick = { showBulkMenu = true }) { androidx.compose.material3.Icon(Icons.Filled.MoreVert, contentDescription = "Actions") }
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = showBulkMenu,
+                        onDismissRequest = { showBulkMenu = false },
+                        shape = MaterialTheme.shapes.medium,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        tonalElevation = 3.dp
+                    ) {
+                        androidx.compose.material3.DropdownMenuItem(text = { Text("Remove from collection") }, onClick = { showBulkMenu = false; showRemoveConfirm = true })
+                        androidx.compose.material3.DropdownMenuItem(text = { Text("Delete memories") }, onClick = { showBulkMenu = false; showDeleteConfirm = true }, leadingIcon = { androidx.compose.material3.Icon(Icons.Filled.Delete, contentDescription = null, tint = Color(0xFFFF4D4D)) })
+                    }
                 }
             } else {
-                IconButton(onClick = { showCollectionMenu = true }) { androidx.compose.material3.Icon(Icons.Filled.MoreVert, contentDescription = "Collection actions") }
-                androidx.compose.material3.DropdownMenu(expanded = showCollectionMenu, onDismissRequest = { showCollectionMenu = false }) {
+                Box {
+                    IconButton(onClick = { showCollectionMenu = true }) { androidx.compose.material3.Icon(Icons.Filled.MoreVert, contentDescription = "Collection actions") }
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = showCollectionMenu,
+                        onDismissRequest = { showCollectionMenu = false },
+                        shape = MaterialTheme.shapes.medium,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        tonalElevation = 3.dp
+                    ) {
                     androidx.compose.material3.DropdownMenuItem(text = { Text("Add memories") }, onClick = {
                         showCollectionMenu = false
                         kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) { allMemories = memRepo.listAll() }
@@ -98,6 +119,7 @@ fun CollectionDetailScreen(id: String, onBack: () -> Unit) {
                         showCollectionMenu = false
                         showDeleteCollectionConfirm = true
                     }, leadingIcon = { androidx.compose.material3.Icon(Icons.Filled.Delete, contentDescription = null, tint = Color(0xFFFF4D4D)) })
+                    }
                 }
             }
         }

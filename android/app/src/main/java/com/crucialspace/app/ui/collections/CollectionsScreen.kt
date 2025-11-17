@@ -37,6 +37,8 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Button
+import com.crucialspace.app.ui.components.PillButton
+import com.crucialspace.app.ui.components.OutlinedPillButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.ui.Alignment
@@ -64,6 +66,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun CollectionsScreen(onOpenCollection: (String) -> Unit, onOpenSearch: () -> Unit = {}, onOpenSettings: () -> Unit = {}) {
     val ctx = LocalContext.current
+    val settingsStore = remember { com.crucialspace.app.settings.SettingsStore(ctx) }
     val repo = remember { CollectionRepository(db(ctx)) }
     val collections by repo.observeAll().collectAsState(initial = emptyList())
 
@@ -75,7 +78,7 @@ fun CollectionsScreen(onOpenCollection: (String) -> Unit, onOpenSearch: () -> Un
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showSearch by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    var sortBy by remember { mutableStateOf("date-created-desc") } // date-created-desc, date-created-asc, name-asc, name-desc
+    var sortBy by remember { mutableStateOf(settingsStore.getCollectionsSortPreference()) }
     var showSortMenu by remember { mutableStateOf(false) }
     
     // Map to store last modified times (most recent memory in each collection)
@@ -116,41 +119,59 @@ fun CollectionsScreen(onOpenCollection: (String) -> Unit, onOpenSearch: () -> Un
             Text("Collections", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.onBackground)
             Spacer(Modifier.weight(1f))
             if (selectedIds.isNotEmpty()) {
-                IconButton(onClick = { showBulkMenu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "More") }
-                DropdownMenu(expanded = showBulkMenu, onDismissRequest = { showBulkMenu = false }) {
-                    DropdownMenuItem(text = { Text("Delete collections") }, onClick = {
-                        showBulkMenu = false
-                        showDeleteConfirm = true
-                    }, leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null, tint = Color(0xFFFF4D4D)) })
+                Box {
+                    IconButton(onClick = { showBulkMenu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "More") }
+                    DropdownMenu(
+                        expanded = showBulkMenu,
+                        onDismissRequest = { showBulkMenu = false },
+                        shape = MaterialTheme.shapes.medium,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        tonalElevation = 3.dp
+                    ) {
+                        DropdownMenuItem(text = { Text("Delete collections") }, onClick = {
+                            showBulkMenu = false
+                            showDeleteConfirm = true
+                        }, leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null, tint = Color(0xFFFF4D4D)) })
+                    }
                 }
             }
             // Sort, Search, and Settings
-            androidx.compose.material3.Surface(shape = RoundedCornerShape(20.dp), tonalElevation = 3.dp) {
+            androidx.compose.material3.Surface(
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = 3.dp,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh
+            ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box {
                         androidx.compose.material3.IconButton(onClick = { showSortMenu = true }) {
                             androidx.compose.material3.Icon(Icons.Filled.List, contentDescription = "Sort", tint = Color.White)
                         }
-                        DropdownMenu(expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
+                        DropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { showSortMenu = false },
+                            shape = MaterialTheme.shapes.medium,
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            tonalElevation = 3.dp
+                        ) {
                             DropdownMenuItem(
                                 text = { Text("Newest first") },
-                                onClick = { sortBy = "date-created-desc"; showSortMenu = false }
+                                onClick = { sortBy = "date-created-desc"; settingsStore.setCollectionsSortPreference(sortBy); showSortMenu = false }
                             )
                             DropdownMenuItem(
                                 text = { Text("Oldest first") },
-                                onClick = { sortBy = "date-created-asc"; showSortMenu = false }
+                                onClick = { sortBy = "date-created-asc"; settingsStore.setCollectionsSortPreference(sortBy); showSortMenu = false }
                             )
                             DropdownMenuItem(
                                 text = { Text("Last modified") },
-                                onClick = { sortBy = "last-modified"; showSortMenu = false }
+                                onClick = { sortBy = "last-modified"; settingsStore.setCollectionsSortPreference(sortBy); showSortMenu = false }
                             )
                             DropdownMenuItem(
                                 text = { Text("Name (A-Z)") },
-                                onClick = { sortBy = "name-asc"; showSortMenu = false }
+                                onClick = { sortBy = "name-asc"; settingsStore.setCollectionsSortPreference(sortBy); showSortMenu = false }
                             )
                             DropdownMenuItem(
                                 text = { Text("Name (Z-A)") },
-                                onClick = { sortBy = "name-desc"; showSortMenu = false }
+                                onClick = { sortBy = "name-desc"; settingsStore.setCollectionsSortPreference(sortBy); showSortMenu = false }
                             )
                         }
                     }
@@ -173,7 +194,7 @@ fun CollectionsScreen(onOpenCollection: (String) -> Unit, onOpenSearch: () -> Un
                 placeholder = { Text("Search collections...") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                shape = RoundedCornerShape(16.dp),
+                shape = MaterialTheme.shapes.large,
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 trailingIcon = if (searchQuery.isNotEmpty()) {{
                     androidx.compose.material3.IconButton(onClick = { searchQuery = "" }) {
@@ -206,14 +227,20 @@ fun CollectionsScreen(onOpenCollection: (String) -> Unit, onOpenSearch: () -> Un
                         }
                         Box(modifier = Modifier.weight(1f)) {
                             val isSelected = selectedIds.contains(c.id)
-                            Surface(onClick = {
-                                if (selectedIds.isNotEmpty()) {
-                                    selectedIds = selectedIds.toMutableSet().apply { if (contains(c.id)) remove(c.id) else add(c.id) }
-                                } else onOpenCollection(c.id)
-                            }, shape = RoundedCornerShape(16.dp), tonalElevation = 2.dp, border = if (isSelected) BorderStroke(3.dp, Color(0xFFFFD54F)) else null) {
+                            Surface(
+                                onClick = {
+                                    if (selectedIds.isNotEmpty()) {
+                                        selectedIds = selectedIds.toMutableSet().apply { if (contains(c.id)) remove(c.id) else add(c.id) }
+                                    } else onOpenCollection(c.id)
+                                },
+                                shape = MaterialTheme.shapes.large,
+                                tonalElevation = 2.dp,
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                border = if (isSelected) BorderStroke(3.dp, MaterialTheme.colorScheme.tertiary) else null
+                            ) {
                                 Box(modifier = Modifier
                                     .aspectRatio(1f)
-                                    .clip(RoundedCornerShape(16.dp))
+                                    .clip(MaterialTheme.shapes.large)
                                     .combinedClickable(onClick = {
                                         if (selectedIds.isNotEmpty()) {
                                             selectedIds = selectedIds.toMutableSet().apply { if (contains(c.id)) remove(c.id) else add(c.id) }
@@ -309,8 +336,9 @@ fun CollectionsScreen(onOpenCollection: (String) -> Unit, onOpenSearch: () -> Un
             // New Collection button (FAB)
             FloatingActionButton(
                 onClick = { showNew = true },
-                containerColor = Color(0xFF1D1D20),
-                contentColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = MaterialTheme.shapes.large,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
             ) {
                 Icon(Icons.Filled.Add, contentDescription = "New collection")
@@ -321,24 +349,42 @@ fun CollectionsScreen(onOpenCollection: (String) -> Unit, onOpenSearch: () -> Un
     if (showNew) {
         AlertDialog(
             onDismissRequest = { showNew = false },
+            shape = MaterialTheme.shapes.extraLarge,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             confirmButton = {
-                Button(onClick = {
-                    val nm = newName.trim()
-                    if (nm.isNotEmpty()) {
-                        kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) { repo.create(nm, newDesc.ifBlank { null }) }
-                    }
-                    showNew = false
-                    newName = ""; newDesc = ""
-                }) { Text("Create") }
+                PillButton(
+                    onClick = {
+                        val nm = newName.trim()
+                        if (nm.isNotEmpty()) {
+                            kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) { repo.create(nm, newDesc.ifBlank { null }) }
+                        }
+                        showNew = false
+                        newName = ""; newDesc = ""
+                    },
+                    text = "Create"
+                )
             },
             dismissButton = {
-                Button(onClick = { showNew = false }) { Text("Cancel") }
+                OutlinedPillButton(
+                    onClick = { showNew = false },
+                    text = "Cancel"
+                )
             },
             title = { Text("New Collection") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = newName, onValueChange = { newName = it }, label = { Text("Name") })
-                    OutlinedTextField(value = newDesc, onValueChange = { newDesc = it }, label = { Text("Description (optional)") })
+                    OutlinedTextField(
+                        value = newName, 
+                        onValueChange = { newName = it }, 
+                        label = { Text("Name") },
+                        shape = MaterialTheme.shapes.medium
+                    )
+                    OutlinedTextField(
+                        value = newDesc, 
+                        onValueChange = { newDesc = it }, 
+                        label = { Text("Description (optional)") },
+                        shape = MaterialTheme.shapes.medium
+                    )
                 }
             }
         )
@@ -347,18 +393,28 @@ fun CollectionsScreen(onOpenCollection: (String) -> Unit, onOpenSearch: () -> Un
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
+            shape = MaterialTheme.shapes.extraLarge,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             confirmButton = {
-                Button(onClick = {
-                    val ids = selectedIds.toList()
-                    showDeleteConfirm = false
-                    kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
-                        val r = CollectionRepository(db(ctx))
-                        ids.forEach { r.delete(it) }
-                    }
-                    selectedIds = emptySet()
-                }) { Text("Delete") }
+                PillButton(
+                    onClick = {
+                        val ids = selectedIds.toList()
+                        showDeleteConfirm = false
+                        kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
+                            val r = CollectionRepository(db(ctx))
+                            ids.forEach { r.delete(it) }
+                        }
+                        selectedIds = emptySet()
+                    },
+                    text = "Delete"
+                )
             },
-            dismissButton = { Button(onClick = { showDeleteConfirm = false }) { Text("Cancel") } },
+            dismissButton = { 
+                OutlinedPillButton(
+                    onClick = { showDeleteConfirm = false },
+                    text = "Cancel"
+                ) 
+            },
             title = { Text("Delete collections?") },
             text = { Text("This will delete ${selectedIds.size} collections.") }
         )

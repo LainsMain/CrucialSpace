@@ -43,6 +43,11 @@ import androidx.core.app.ActivityCompat
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import com.crucialspace.app.ui.components.SquigglyWaveform
+import com.crucialspace.app.ui.components.SquigglyStyle
+import com.crucialspace.app.ui.components.IconPillButton
+import com.crucialspace.app.ui.components.PillButton
+import com.crucialspace.app.ui.components.OutlinedPillButton
 // removed invalid import
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -287,22 +292,24 @@ class ShareTargetActivity : ComponentActivity() {
                         }
                     }
 
-                    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "Enrich", style = MaterialTheme.typography.titleLarge)
-                            IconButton(onClick = {
+                            Text(text = "Enrich", style = MaterialTheme.typography.headlineLarge)
+                            IconPillButton(
+                                onClick = {
                                 if (ContextCompat.checkSelfPermission(this@ShareTargetActivity, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                                     ActivityCompat.requestPermissions(this@ShareTargetActivity, arrayOf(Manifest.permission.CAMERA), 2002)
-                                    return@IconButton
+                                    return@IconPillButton
                                 }
                                 val uri = createImageUri()
                                 if (uri != null) {
                                     pendingCaptureUri = uri
                                     cameraLauncher.launch(uri)
                                 }
-                            }) {
-                                Icon(imageVector = Icons.Filled.CameraAlt, contentDescription = "Camera")
-                            }
+                            },
+                                icon = Icons.Filled.CameraAlt,
+                                size = 48.dp
+                            )
                         }
 					Spacer(Modifier.height(8.dp))
 
@@ -360,19 +367,20 @@ class ShareTargetActivity : ComponentActivity() {
                     // URL bubble display
                     if (separateUrl != null && !editingUrl) {
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFF2A2A2F),
+                            shape = MaterialTheme.shapes.extraLarge,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            tonalElevation = 3.dp,
                             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                         ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
                                     text = separateUrl!!,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color(0xFF6B9BD1),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f).clickable {
@@ -382,12 +390,12 @@ class ShareTargetActivity : ComponentActivity() {
                                 )
                                 IconButton(onClick = {
                                     separateUrl = null
-                                }, modifier = Modifier.size(24.dp)) {
+                                }, modifier = Modifier.size(32.dp)) {
                                     Icon(
                                         imageVector = Icons.Filled.Delete,
                                         contentDescription = "Remove URL",
-                                        tint = Color(0xFFFF6B6B),
-                                        modifier = Modifier.size(18.dp)
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
                             }
@@ -397,22 +405,31 @@ class ShareTargetActivity : ComponentActivity() {
                     if (editingUrl) {
                         AlertDialog(
                             onDismissRequest = { editingUrl = false },
+                            shape = MaterialTheme.shapes.extraLarge,
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                             confirmButton = {
-                                Button(onClick = {
-                                    separateUrl = urlEditText
-                                    editingUrl = false
-                                }) { Text("Save") }
+                                PillButton(
+                                    onClick = {
+                                        separateUrl = urlEditText
+                                        editingUrl = false
+                                    },
+                                    text = "Save"
+                                )
                             },
                             dismissButton = {
-                                Button(onClick = { editingUrl = false }) { Text("Cancel") }
+                                OutlinedPillButton(
+                                    onClick = { editingUrl = false },
+                                    text = "Cancel"
+                                )
                             },
-                            title = { Text("Edit URL") },
+                            title = { Text("Edit URL", style = MaterialTheme.typography.titleLarge) },
                             text = {
                                 OutlinedTextField(
                                     value = urlEditText,
                                     onValueChange = { urlEditText = it },
                                     modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
+                                    singleLine = true,
+                                    shape = MaterialTheme.shapes.extraLarge
                                 )
                             }
                         )
@@ -420,98 +437,102 @@ class ShareTargetActivity : ComponentActivity() {
 
                     // Show audio badge if recording exists (above text field, below URL bubble)
                     if (recordedFile != null && recordedDurationMs > 0 && !isRecording) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        Surface(
+                            shape = MaterialTheme.shapes.extraLarge,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            tonalElevation = 3.dp,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 8.dp)
-                                .background(Color(0xFF2A2A2F), RoundedCornerShape(12.dp))
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Filled.Mic,
-                                contentDescription = "Audio",
-                                tint = Color(0xFFFFD54F),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            val secs = recordedDurationMs / 1000
-                            Text(
-                                String.format("%d:%02d", secs / 60, secs % 60),
-                                color = Color.White,
-                                fontSize = 12.sp
-                            )
-                            Spacer(Modifier.weight(1f))
-                            IconButton(onClick = { removeAudio() }, modifier = Modifier.size(20.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                            ) {
                                 Icon(
-                                    imageVector = Icons.Filled.Delete,
-                                    contentDescription = "Remove audio",
-                                    tint = Color(0xFFFF6B6B),
-                                    modifier = Modifier.size(14.dp)
+                                    imageVector = Icons.Filled.Mic,
+                                    contentDescription = "Audio",
+                                    tint = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.size(20.dp)
                                 )
+                                val secs = recordedDurationMs / 1000
+                                Text(
+                                    String.format("%d:%02d", secs / 60, secs % 60),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(Modifier.weight(1f))
+                                IconButton(onClick = { removeAudio() }, modifier = Modifier.size(32.dp)) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Delete,
+                                        contentDescription = "Remove audio",
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         }
                     }
 
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier
-                            .fillMaxWidth()
-                            .border(2.dp, goldBrush, RoundedCornerShape(28.dp))
-                            .clip(RoundedCornerShape(28.dp))
-                            .background(Color(0xFF1D1D20))
-                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                    Surface(
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        tonalElevation = 3.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
-                            IconButton(onClick = { 
-                                if (isRecording) {
-                                    trashRecording()
-                                } else {
-                                    // Replace existing recording if any
-                                    removeAudio()
-                                    startRecording()
-                                }
-                            }) {
-                                androidx.compose.material3.Surface(shape = RoundedCornerShape(50), color = Color(0xFF2A2A2F)) {
-                                    Icon(imageVector = if (isRecording) Icons.Filled.Delete else Icons.Filled.Mic, contentDescription = if (isRecording) "Discard recording" else "Record", tint = Color.White, modifier = Modifier.size(36.dp).padding(8.dp))
-                                }
-                            }
+                            IconPillButton(
+                                onClick = { 
+                                    if (isRecording) {
+                                        trashRecording()
+                                    } else {
+                                        // Replace existing recording if any
+                                        removeAudio()
+                                        startRecording()
+                                    }
+                                },
+                                icon = if (isRecording) Icons.Filled.Delete else Icons.Filled.Mic,
+                                size = 48.dp
+                            )
                             if (isRecording) {
 								Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-									Canvas(modifier = Modifier.fillMaxWidth().height(40.dp)) {
-                                        val w = size.width
-                                        val h = size.height
-                                        val barW = (w / (samples.size.coerceAtLeast(1))).coerceAtLeast(3f)
-                                        samples.forEachIndexed { i, v ->
-                                            val bh = (h * v.coerceAtLeast(0.1f))
-                                            drawRect(
-                                                color = Color(0xFFFFD54F),
-                                                topLeft = androidx.compose.ui.geometry.Offset(i * barW, (h - bh) / 2f),
-                                                size = androidx.compose.ui.geometry.Size(barW * 0.6f, bh)
-                                            )
-                                        }
-                                    }
+									SquigglyWaveform(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        style = SquigglyStyle.AUDIO_WAVEFORM,
+                                        color = Color(0xFFFFD54F),
+                                        animated = true,
+                                        height = 40.dp,
+                                        amplitudes = samples
+                                    )
                                     val secs = elapsedMs / 1000
                                     Text(String.format("%d:%02d", secs / 60, secs % 60), color = Color.White, fontSize = 14.sp, modifier = Modifier.padding(start = 8.dp))
                                 }
                             } else {
                                 // Text input (completely separate from URL)
-                                Box(modifier = Modifier.weight(1f)) {
-                                    if (note.isBlank()) {
-                                        Text("Add a quick note…", color = Color.LightGray)
-                                    }
-                                    BasicTextField(
-                                        value = note,
-                                        onValueChange = { note = it },
-                                        singleLine = false,
-                                        minLines = 1,
-                                        maxLines = 6,
-                                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.White),
-                                        cursorBrush = SolidColor(Color.White),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .heightIn(min = 20.dp, max = 120.dp)
+                                OutlinedTextField(
+                                    value = note,
+                                    onValueChange = { note = it },
+                                    modifier = Modifier.weight(1f),
+                                    placeholder = { Text("Add a quick note…") },
+                                    minLines = 1,
+                                    maxLines = 4,
+                                    textStyle = MaterialTheme.typography.bodyLarge,
+                                    shape = MaterialTheme.shapes.large,
+                                    colors = androidx.compose.material3.TextFieldDefaults.colors(
+                                        focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                                        unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                                        focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                                        unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent
                                     )
-                                }
+                                )
                             }
-                            IconButton(onClick = {
+                            IconPillButton(
+                                onClick = {
                                 if (isRecording) {
                                     // Save recording button: stop recording but don't send
                                     stopRecording()
@@ -557,16 +578,10 @@ class ShareTargetActivity : ComponentActivity() {
                                     }
                                     finish()
                                 }
-                            }) {
-                                androidx.compose.material3.Surface(shape = RoundedCornerShape(50), color = Color(0xFF2A2A2F)) {
-                                    Icon(
-                                        imageVector = if (isRecording) Icons.Filled.Save else Icons.Filled.Send,
-                                        contentDescription = if (isRecording) "Save recording" else "Send",
-                                        tint = Color(0xFFFFD54F),
-                                        modifier = Modifier.size(36.dp).padding(8.dp)
-                                    )
-                                }
-                            }
+                            },
+                                icon = if (isRecording) Icons.Filled.Save else Icons.Filled.Send,
+                                size = 48.dp
+                            )
                         }
                     }
                 }
@@ -1063,3 +1078,5 @@ private fun findBestImageUrl(html: String, pageUrl: String): String? {
     android.util.Log.w("ShareTargetActivity", "No image found for URL: $pageUrl")
     return null
 }
+}
+

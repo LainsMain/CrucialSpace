@@ -71,6 +71,22 @@ class SettingsStore(private val context: Context) {
 		prefs.edit().putString(KEY_LANGUAGE_PREF, language).apply()
 	}
 
+	fun getThemePreference(): String {
+		return prefs.getString(KEY_THEME_PREF, "purple")!!
+	}
+
+	fun setThemePreference(theme: String) {
+		prefs.edit().putString(KEY_THEME_PREF, theme).apply()
+	}
+
+	fun getCollectionsSortPreference(): String {
+		return prefs.getString(KEY_COLLECTIONS_SORT, "date-created-desc")!!
+	}
+
+	fun setCollectionsSortPreference(sort: String) {
+		prefs.edit().putString(KEY_COLLECTIONS_SORT, sort).apply()
+	}
+
 	companion object {
 		private const val KEY_BASE_URL = "base_url"
 		private const val KEY_SECRET = "secret"
@@ -79,5 +95,7 @@ class SettingsStore(private val context: Context) {
 		private const val KEY_GEMINI_MODEL = "gemini_model"
 		private const val KEY_EMBEDDING_MODEL = "embedding_model"
 		private const val KEY_LANGUAGE_PREF = "language_preference"
+		private const val KEY_THEME_PREF = "theme_preference"
+		private const val KEY_COLLECTIONS_SORT = "collections_sort_preference"
 	}
 }
