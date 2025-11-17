@@ -17,12 +17,32 @@
 - **Settings Screen**: Enhanced form inputs with 24dp corners, updated buttons with Material 3 colors, better spacing
 - **All Dialogs**: Updated with Material 3 color tokens and expressive corner radii
 
+### UI Refinements
+
+- **Removed Gold Shimmer**: Cleaned up Settings API key section by removing gold shimmer background for a cleaner look
+- **Thicker Squiggly Dividers**: Increased GoldWaveDivider thickness from 2dp to 5dp for better visibility
+- **Animated Squiggly Waveform**: Replaced blocky recording waveform with animated organic squiggly waveform in enrich screen
+- **Enrich Screen Redesign**: Complete Material 3 Expressive styling with pill-shaped text fields, unified buttons, and proper surface layering
+- **Unified Back Buttons**: All back buttons now use IconPillButton for consistent styling across all screens
+- **Unified Search Bars**: Search screens now match Collections screen styling with proper Material 3 surfaces
+- **Fixed Dropdown Positioning**: All dropdown menus now properly anchor below their trigger buttons using Box layout
+- **Material 3 Dropdowns**: All dropdown menus across the app now use consistent Material 3 styling with proper shapes and colors
+
 ### Technical Improvements
 
 - Created motion system with spring-based animations for future enhancements
 - Added elevation tokens for consistent layering
 - Implemented shape scale (ExtraSmall: 8dp, Small: 12dp, Medium: 16dp, Large: 24dp, ExtraLarge: 32dp)
 - All screens now use MaterialTheme color tokens instead of hardcoded colors
+- Added collections sort preference persistence to SettingsStore
+- Created reusable components: SquigglyWaveform, ExpressiveButtons (PillButton, OutlinedPillButton, IconPillButton), GoldAccents
+
+### Release Information
+
+- **APK**: `app-release.apk`
+- **SHA-256**: `DFF29231F2BDD458482AA89A6730AFA889965BE886E1595AFFF54D454FDCDC30`
+- **Min SDK**: 26 (Android 8.0)
+- **Target SDK**: 34 (Android 14)
 
 ## v1.0.4 (2024-11-16)
 
