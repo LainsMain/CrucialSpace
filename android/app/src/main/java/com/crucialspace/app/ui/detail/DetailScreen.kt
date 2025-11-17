@@ -78,6 +78,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import com.crucialspace.app.ui.components.IconPillButton
 import androidx.compose.ui.text.withStyle
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -93,6 +94,8 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.ui.focus.FocusRequester
+import com.crucialspace.app.ui.components.PillButton
+import com.crucialspace.app.ui.components.OutlinedPillButton
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
@@ -169,11 +172,21 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Top app bar with back, centered-ish smaller title, and overflow menu
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onClose) { Icon(Icons.Filled.ArrowBack, contentDescription = "Back") }
-            Text(text = item.aiTitle ?: item.noteText ?: "", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+            IconPillButton(
+                onClick = onClose,
+                icon = Icons.Filled.ArrowBack,
+                size = 48.dp
+            )
+            Text(text = item.aiTitle ?: item.noteText ?: "", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
             androidx.compose.foundation.layout.Box {
                 IconButton(onClick = { showOverflow = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "More") }
-                DropdownMenu(expanded = showOverflow, onDismissRequest = { showOverflow = false }) {
+                DropdownMenu(
+                    expanded = showOverflow,
+                    onDismissRequest = { showOverflow = false },
+                    shape = MaterialTheme.shapes.medium,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    tonalElevation = 3.dp
+                ) {
                     DropdownMenuItem(text = { Text("Add to collections") }, onClick = {
                         showOverflow = false
                         // open picker dialog
@@ -229,8 +242,16 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
             if (chips.isNotEmpty()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     chips.forEach { c ->
-                        androidx.compose.material3.Surface(shape = RoundedCornerShape(16.dp), tonalElevation = 2.dp) {
-                            Text(c.name, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+                        androidx.compose.material3.Surface(
+                            shape = MaterialTheme.shapes.medium,
+                            tonalElevation = 2.dp,
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                c.name,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
                         }
                     }
                 }
@@ -288,7 +309,10 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
             val focusManager = LocalFocusManager.current
             var hadFocus by remember { mutableStateOf(false) }
             if (!item.aiSummary.isNullOrBlank() || isEditing) {
-                androidx.compose.material3.Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF1D1D20))) {
+                androidx.compose.material3.Card(
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -411,21 +435,31 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
             }
             AlertDialog(
                 onDismissRequest = { showCollectionsPicker = false },
+                shape = MaterialTheme.shapes.extraLarge,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 confirmButton = {
-                    androidx.compose.material3.Button(onClick = {
-                        // apply selections
-                        kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
-                            val repo = com.crucialspace.app.data.repo.CollectionRepository(db(context))
-                            // add missing
-                            selected.forEach { cid -> repo.addMemoryToCollection(cid, item.id) }
-                            // remove deselected
-                            val existing = dao.listCollectionsForMemory(item.id).map { it.id }.toSet()
-                            existing.filter { it !in selected }.forEach { cid -> repo.removeMemoryFromCollection(cid, item.id) }
-                        }
-                        showCollectionsPicker = false
-                    }) { Text("Save") }
+                    PillButton(
+                        onClick = {
+                            // apply selections
+                            kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
+                                val repo = com.crucialspace.app.data.repo.CollectionRepository(db(context))
+                                // add missing
+                                selected.forEach { cid -> repo.addMemoryToCollection(cid, item.id) }
+                                // remove deselected
+                                val existing = dao.listCollectionsForMemory(item.id).map { it.id }.toSet()
+                                existing.filter { it !in selected }.forEach { cid -> repo.removeMemoryFromCollection(cid, item.id) }
+                            }
+                            showCollectionsPicker = false
+                        },
+                        text = "Save"
+                    )
                 },
-                dismissButton = { androidx.compose.material3.Button(onClick = { showCollectionsPicker = false }) { Text("Cancel") } },
+                dismissButton = { 
+                    OutlinedPillButton(
+                        onClick = { showCollectionsPicker = false },
+                        text = "Cancel"
+                    ) 
+                },
                 title = { Text("Add to collections") },
                 text = {
                     androidx.compose.foundation.lazy.LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -547,19 +581,16 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
         if (showReminderOptions && editingIndex >= 0) {
             AlertDialog(
                 onDismissRequest = { showReminderOptions = false },
+                shape = MaterialTheme.shapes.extraLarge,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 confirmButton = {
-                    androidx.compose.material3.OutlinedButton(
+                    PillButton(
                         onClick = { showReminderOptions = false; showEditDialog = true },
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(2.dp, Color.White),
-                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color(0xFF1D1D20),
-                            contentColor = Color.White
-                        )
-                    ) { Text("Edit") }
+                        text = "Edit"
+                    )
                 },
                 dismissButton = {
-                    androidx.compose.material3.OutlinedButton(
+                    OutlinedPillButton(
                         onClick = {
                             showReminderOptions = false
                             scope.launch {
@@ -570,13 +601,8 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
                                 reminders = new
                             }
                         },
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(2.dp, Color(0xFFFF4D4D)),
-                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color(0xFF1D1D20),
-                            contentColor = Color(0xFFFF4D4D)
-                        )
-                    ) { Text("Delete") }
+                        text = "Delete"
+                    )
                 },
                 title = { Text("Reminder") },
                 text = { Text("Edit or delete this reminder?") }
@@ -590,8 +616,10 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
 
             AlertDialog(
                 onDismissRequest = { showEditDialog = false },
+                shape = MaterialTheme.shapes.extraLarge,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 confirmButton = {
-                    androidx.compose.material3.OutlinedButton(
+                    PillButton(
                         onClick = {
                         val zoned = localDate.atTime(localTime).atZone(ZoneId.systemDefault())
                         val utcIso = zoned.withZoneSameInstant(ZoneOffset.UTC).toOffsetDateTime().toString()
@@ -613,54 +641,36 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
                             showEditDialog = false
                         }
                     },
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(2.dp, Color.White),
-                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color(0xFF1D1D20),
-                            contentColor = Color.White
-                        )
-                    ) { Text("Save") }
+                        text = "Save"
+                    )
                 },
                 dismissButton = {
-                    androidx.compose.material3.OutlinedButton(
+                    OutlinedPillButton(
                         onClick = { showEditDialog = false },
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(2.dp, Color.White),
-                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color(0xFF1D1D20),
-                            contentColor = Color.White
-                        )
-                    ) { Text("Cancel") }
+                        text = "Cancel"
+                    )
                 },
                 title = { Text("Edit Reminder") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(value = editingText, onValueChange = { editingText = it }, label = { Text("Title") })
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            androidx.compose.material3.OutlinedButton(onClick = {
-                                DatePickerDialog(context, { _, y, m, d ->
-                                    localDate = LocalDate.of(y, m + 1, d)
-                                }, localDate.year, localDate.monthValue - 1, localDate.dayOfMonth).show()
-                            },
-                                shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(2.dp, Color.White),
-                                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                                    containerColor = Color(0xFF1D1D20),
-                                    contentColor = Color.White
-                                )
-                            ) { Text(localDate.toString()) }
-                            androidx.compose.material3.OutlinedButton(onClick = {
-                                TimePickerDialog(context, { _, h, min ->
-                                    localTime = LocalTime.of(h, min)
-                                }, localTime.hour, localTime.minute, true).show()
-                            },
-                                shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(2.dp, Color.White),
-                                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                                    containerColor = Color(0xFF1D1D20),
-                                    contentColor = Color.White
-                                )
-                            ) { Text(localTime.toString()) }
+                            OutlinedPillButton(
+                                onClick = {
+                                    DatePickerDialog(context, { _, y, m, d ->
+                                        localDate = LocalDate.of(y, m + 1, d)
+                                    }, localDate.year, localDate.monthValue - 1, localDate.dayOfMonth).show()
+                                },
+                                text = localDate.toString()
+                            )
+                            OutlinedPillButton(
+                                onClick = {
+                                    TimePickerDialog(context, { _, h, min ->
+                                        localTime = LocalTime.of(h, min)
+                                    }, localTime.hour, localTime.minute, true).show()
+                                },
+                                text = localTime.toString()
+                            )
                         }
                     }
                 }
@@ -669,19 +679,24 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
 		Spacer(Modifier.height(8.dp))
     val repo = remember { MemoryRepository(db(context)) }
     if (item.status == "ERROR") {
-        Button(onClick = {
-            scope.launch {
-                withContext(Dispatchers.IO) { repo.retry(item.id, context) }
-            }
-        }) { Text("Retry") }
+        PillButton(
+            onClick = {
+                scope.launch {
+                    withContext(Dispatchers.IO) { repo.retry(item.id, context) }
+                }
+            },
+            text = "Retry"
+        )
     }
     if (confirmDelete) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { confirmDelete = false },
+            shape = MaterialTheme.shapes.extraLarge,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             // Center both buttons in one row
             confirmButton = {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)) {
-                    androidx.compose.material3.OutlinedButton(
+                    OutlinedPillButton(
                         onClick = {
                             confirmDelete = false
                             scope.launch {
@@ -689,22 +704,12 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
                                 onClose()
                             }
                         },
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(2.dp, Color(0xFFFF4D4D)),
-                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color(0xFF1D1D20),
-                            contentColor = Color(0xFFFF4D4D)
-                        )
-                    ) { Text("Delete") }
-                    androidx.compose.material3.OutlinedButton(
+                        text = "Delete"
+                    )
+                    OutlinedPillButton(
                         onClick = { confirmDelete = false },
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(2.dp, Color.White),
-                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color(0xFF1D1D20),
-                            contentColor = Color.White
-                        )
-                    ) { Text("Cancel") }
+                        text = "Cancel"
+                    )
                 }
             },
             dismissButton = {},
@@ -722,7 +727,10 @@ fun DetailScreen(id: String, onClose: () -> Unit) {
 
 @Composable
 private fun SectionCard(title: String, content: @Composable () -> Unit) {
-    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF1D1D20))) {
+    Card(
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+    ) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             content()
@@ -817,20 +825,15 @@ private fun AudioSection(audioUri: String, transcript: String?) {
                             }
                         }
                     }
-                    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxWidth().height(40.dp)) {
-                        val sz = this.size
-                        val w = sz.width
-                        val h = sz.height
-                        val barW = (w / (samples.size.coerceAtLeast(1))).coerceAtLeast(3f)
-                        samples.forEachIndexed { i, v ->
-                            val bh = (h * (0.1f + 0.9f * v))
-                            drawRect(
-                                color = Color(0xFFFFD54F),
-                                topLeft = androidx.compose.ui.geometry.Offset(i * barW, (h - bh) / 2f),
-                                size = androidx.compose.ui.geometry.Size(barW * 0.6f, bh)
-                            )
-                        }
-                    }
+                    // Squiggly waveform visualization
+                    com.crucialspace.app.ui.components.SquigglyWaveform(
+                        modifier = Modifier.fillMaxWidth(),
+                        style = com.crucialspace.app.ui.components.SquigglyStyle.AUDIO_WAVEFORM,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        animated = true,
+                        height = 40.dp,
+                        amplitudes = samples
+                    )
                 }
                 val cur = positionMs / 1000
                 val tot = durationMs / 1000
@@ -851,7 +854,11 @@ private fun AudioSection(audioUri: String, transcript: String?) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ReminderRow(text: String, time: String?, onLongPress: () -> Unit) {
-    androidx.compose.material3.Surface(shape = RoundedCornerShape(16.dp), tonalElevation = 2.dp) {
+    androidx.compose.material3.Surface(
+        shape = MaterialTheme.shapes.medium,
+        tonalElevation = 2.dp,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

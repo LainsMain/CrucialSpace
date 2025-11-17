@@ -56,6 +56,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import com.crucialspace.app.ui.components.IconPillButton
 
 @Composable
 fun SearchScreen(onOpenDetail: (String) -> Unit, onBack: () -> Unit = {}) {
@@ -106,28 +107,33 @@ fun SearchScreen(onOpenDetail: (String) -> Unit, onBack: () -> Unit = {}) {
     }
 
     Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                IconButton(onClick = onBack) { androidx.compose.material3.Icon(Icons.Filled.ArrowBack, contentDescription = "Back") }
-                Text("Search", style = MaterialTheme.typography.headlineSmall)
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                IconPillButton(
+                    onClick = onBack,
+                    icon = Icons.Filled.ArrowBack,
+                    size = 48.dp
+                )
+                Text("Search", style = MaterialTheme.typography.headlineLarge)
             }
             Spacer(Modifier.height(12.dp))
-            Column(modifier = Modifier
-                .fillMaxWidth()
-                .border(2.dp, goldBrush, RoundedCornerShape(24.dp))
-                .padding(8.dp)) {
+            Surface(
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = 3.dp,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
                     placeholder = { Text("Type to search…") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    shape = MaterialTheme.shapes.extraLarge,
                     colors = TextFieldDefaults.colors(
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
-                        cursorColor = Color.White,
-                        focusedContainerColor = Color(0xFF1D1D20),
-                        unfocusedContainerColor = Color(0xFF1D1D20)
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
                     )
                 )
             }

@@ -1,5 +1,29 @@
 # Release Notes
 
+## v1.0.5 (2024-11-16)
+
+### Major UI Update: Material 3 Expressive Design
+
+- **Vibrant Color System**: Introduced expanded color palette with deeper tonal ranges, container colors, and more expressive surface variants
+- **Enhanced Typography**: Improved font hierarchy with better weight distribution for clearer content structure
+- **Expressive Shapes**: Updated all components with larger, more personality-driven corner radii (24dp for cards, 16dp for chips)
+- **Consistent Styling**: Applied Material 3 Expressive design language across all screens for a cohesive, modern look
+
+### UI Improvements by Screen
+
+- **Feed/Space Screen**: Memory cards with 24dp corners, enhanced hero carousel, updated FAB with primary container colors
+- **Collections Screen**: Collection cards with expressive shapes, improved search bar (24dp corners), updated FAB styling
+- **Detail Screen**: Section cards with 20dp corners, collection chips with primary container colors, improved visual hierarchy
+- **Settings Screen**: Enhanced form inputs with 24dp corners, updated buttons with Material 3 colors, better spacing
+- **All Dialogs**: Updated with Material 3 color tokens and expressive corner radii
+
+### Technical Improvements
+
+- Created motion system with spring-based animations for future enhancements
+- Added elevation tokens for consistent layering
+- Implemented shape scale (ExtraSmall: 8dp, Small: 12dp, Medium: 16dp, Large: 24dp, ExtraLarge: 32dp)
+- All screens now use MaterialTheme color tokens instead of hardcoded colors
+
 ## v1.0.4 (2024-11-16)
 
 ### Breaking Changes
@@ -16,6 +40,14 @@
 ### Improvements
 
 - **Fixed Collections Bottom Padding**: Collection grid now has proper bottom padding matching the Space screen, preventing content from being cut off by the FAB.
+- **Fixed FAB Positioning**: Collections screen plus button now hovers at bottom-right corner matching the Space screen design.
+
+### Release Information
+
+- **APK**: `app-release.apk`
+- **SHA-256**: `01c63e06c2f3b12daaf0acdfa1e4c184c2e79acf430b4b16479d576352f1eb10`
+- **Min SDK**: 26 (Android 8.0)
+- **Target SDK**: 34 (Android 14)
 
 ## v1.0.3 (2024-11-16)
 
